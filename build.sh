@@ -10,6 +10,9 @@ IMAGE_PREFIX="${IMAGE_PREFIX:-datagate-monitor}"
 BUILD_CONFIG="${BUILD_CONFIG:-Release}"
 BUILDER_NAME="${BUILDER_NAME:-multiarch-builder}"
 FRONT_TAG="${FRONT_TAG:-latest}"
+# Frontend: multi-arch is slow on x86 (QEMU for arm64). For a fast local push use:
+#   FRONTEND_PLATFORMS=linux/amd64 ./build.sh frontend
+FRONTEND_PLATFORMS="${FRONTEND_PLATFORMS:-linux/amd64,linux/arm64}"
 
 ALL_SERVICES=("backend" "telegrambot" "openvpn" "frontend")
 
@@ -64,9 +67,9 @@ build_and_push_frontend() {
     exit 1
   fi
 
-  echo "🎨 Building frontend for amd64 + arm64..."
+  echo "🎨 Building frontend for: ${FRONTEND_PLATFORMS}"
   docker buildx build \
-    --platform linux/amd64,linux/arm64 \
+    --platform "${FRONTEND_PLATFORMS}" \
     -f "${DOCKERFILE}" \
     -t "${IMAGE_NAME}:${FRONT_TAG}" \
     --push \
