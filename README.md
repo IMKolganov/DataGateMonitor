@@ -31,7 +31,7 @@ docker compose --env-file .env.prod.x64 up -d --pull always
 - Dashboard: `http://localhost:5582`
 - API: `http://localhost:5581`
 - PostgreSQL: `localhost:5432` (container: `postgres_backend:5432`)
-- Xray sidecar (optional stack): manager API `http://localhost:5012`, VLESS `localhost:8443` (see `docker-compose.yml` service `xray`)
+- Xray sidecar (optional stack): VLESS on **`xray:443`** inside Compose (terminate TLS on nginx and proxy/stream there; no host VLESS port in the default `docker-compose.yml`). Manager API on host **`http://localhost:15012`** by default (override `XRAY_MANAGER_HOST_PORT`). Local dev compose maps VLESS **`localhost:30443`** by default (see `docker-compose-local.yml`).
 
 **Note for development / building locally**
 If you don’t want to use prebuilt images (or you’re developing), run:
