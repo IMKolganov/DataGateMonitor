@@ -128,10 +128,12 @@ done
 
 if parallel_enabled && [[ ${#SERVICES[@]} -gt 1 ]]; then
   echo "⚡ Parallel build for: ${SERVICES[*]}"
+  LOG_DIR="$(mktemp -d "${TMPDIR:-/tmp}/datagate-monitor-build.XXXXXX")"
+  echo "📋 Per-service logs: ${LOG_DIR}"
   pids=()
   names=()
   for SVC in "${SERVICES[@]}"; do
-    ( build_one_service "$SVC" ) &
+    ( build_one_service "$SVC" >"${LOG_DIR}/${SVC}.log" 2>&1 ) &
     pids+=($!)
     names+=("$SVC")
   done
@@ -139,9 +141,17 @@ if parallel_enabled && [[ ${#SERVICES[@]} -gt 1 ]]; then
   for i in "${!pids[@]}"; do
     if ! wait "${pids[$i]}"; then
       echo "❌ Build failed: ${names[$i]}"
+      echo "--- tail ${LOG_DIR}/${names[$i]}.log (last 120 lines) ---"
+      tail -n 120 "${LOG_DIR}/${names[$i]}.log" 2>/dev/null || true
+      echo "--- (full log: ${LOG_DIR}/${names[$i]}.log) ---"
       fail=1
     fi
   done
+  if [[ "$fail" -eq 0 ]]; then
+    rm -rf "${LOG_DIR}"
+  else
+    echo "💡 Hint: parallel pushes can hit registry rate limits (HTTP 429); retry failed service alone or use sequential build."
+  fi
   [[ "$fail" -eq 0 ]] || exit 1
 else
   for SVC in "${SERVICES[@]}"; do
