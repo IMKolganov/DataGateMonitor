@@ -149,7 +149,8 @@ services:
       VPN_SUBNET: "10.50.28.0"
       VPN_NETMASK: "255.255.255.0"
 
-  # Xray-core + DataGateXRayManager (VLESS API on host 8443; manager HTTP API on 5012 — avoids 5010/5011 used by OpenVPN sidecars)
+  # Xray-core + DataGateXRayManager (VLESS on host 8443; manager API on host → container 5010).
+  # If bind fails ("address already in use"), set e.g. XRAY_MANAGER_HOST_PORT=5013 in .env next to this file.
   xray:
     image: imkolganov/datagate-monitor-xray:latest
     pull_policy: always
@@ -160,8 +161,8 @@ services:
     volumes:
       - xray_data:/data
     ports:
-      - "8443:443"
-      - "5012:5010"
+      - "${XRAY_VLESS_HOST_PORT:-8443}:443"
+      - "${XRAY_MANAGER_HOST_PORT:-5012}:5010"
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       DATA_DIR: /data

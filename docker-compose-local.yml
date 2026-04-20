@@ -176,7 +176,7 @@ services:
       # backend via host
       BACKEND__BASEURL: http://host.docker.internal:5581/
 
-  # Submodule: ./xray — Xray-core + DataGateXRayManager (host 8443 → VLESS, 5012 → manager API)
+  # Submodule: ./xray — Xray-core + DataGateXRayManager (override host ports via XRAY_VLESS_HOST_PORT / XRAY_MANAGER_HOST_PORT)
   xray:
     build:
       context: ./xray
@@ -192,8 +192,8 @@ services:
     volumes:
       - xray_data:/data
     ports:
-      - "8443:443"
-      - "5012:5010"
+      - "${XRAY_VLESS_HOST_PORT:-8443}:443"
+      - "${XRAY_MANAGER_HOST_PORT:-5012}:5010"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
