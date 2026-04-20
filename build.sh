@@ -17,8 +17,70 @@ FRONTEND_PLATFORMS="${FRONTEND_PLATFORMS:-linux/amd64,linux/arm64}"
 #   BUILD_PARALLEL=1 ./build.sh backend xray
 #   ./build.sh --parallel backend openvpn xray
 BUILD_PARALLEL="${BUILD_PARALLEL:-0}"
+# Parallel: if some services fail, still exit 0 when at least one succeeded (local-friendly).
+# CI strict: BUILD_FAIL_SOFT=0
+BUILD_FAIL_SOFT="${BUILD_FAIL_SOFT:-1}"
 
 ALL_SERVICES=("backend" "telegrambot" "openvpn" "xray" "frontend")
+
+bash_supports_wait_n() {
+  ((BASH_VERSINFO[0] > 5 || (BASH_VERSINFO[0] == 5 && BASH_VERSINFO[1] >= 1)))
+}
+
+# Reap background build jobs in completion order (bash 5.1+ wait -n -p), else FIFO wait.
+reap_parallel_builds() {
+  local -n _pids=$1
+  local -n _names=$2
+  local _logdir=$3
+  local -n _ok_out=$4
+  local -n _fail_out=$5
+
+  declare -A _pid_to_name=()
+  local i _n=${#_pids[@]}
+  for i in "${!_pids[@]}"; do
+    _pid_to_name[${_pids[$i]}]="${_names[$i]}"
+  done
+
+  if bash_supports_wait_n; then
+    while ((_n > 0)); do
+      local WPID="" rc=0 svc=""
+      wait -n -p WPID
+      rc=$?
+      svc="${_pid_to_name[$WPID]:-pid-$WPID}"
+      if [[ "$rc" -eq 0 ]]; then
+        _ok_out+=("$svc")
+        echo "✅ Finished: $svc"
+      else
+        _fail_out+=("$svc")
+        echo "❌ Build failed: $svc (exit $rc)"
+        echo "--- tail ${_logdir}/${svc}.log (last 120 lines) ---"
+        tail -n 120 "${_logdir}/${svc}.log" 2>/dev/null || true
+        echo "--- (full log: ${_logdir}/${svc}.log) ---"
+      fi
+      ((_n--)) || true
+    done
+  else
+    echo "ℹ️ Bash < 5.1: reaping parallel jobs in start order (install bash 5.1+ for completion-order waits)."
+    for i in "${!_pids[@]}"; do
+      local rc=0 svc="${_names[$i]}"
+      if wait "${_pids[$i]}"; then
+        _ok_out+=("$svc")
+        echo "✅ Finished: $svc"
+      else
+        rc=$?
+        _fail_out+=("$svc")
+        echo "❌ Build failed: $svc (exit $rc)"
+        echo "--- tail ${_logdir}/${svc}.log (last 120 lines) ---"
+        tail -n 120 "${_logdir}/${svc}.log" 2>/dev/null || true
+        echo "--- (full log: ${_logdir}/${svc}.log) ---"
+      fi
+    done
+  fi
+}
+
+parallel_fail_strict() {
+  [[ "${BUILD_FAIL_SOFT:-1}" == "0" || "${BUILD_FAIL_SOFT,,}" == "false" || "${BUILD_FAIL_SOFT,,}" == "no" ]]
+}
 
 docker buildx inspect "${BUILDER_NAME}" >/dev/null 2>&1 || {
   echo "🧱 Creating buildx builder '${BUILDER_NAME}'..."
@@ -137,22 +199,29 @@ if parallel_enabled && [[ ${#SERVICES[@]} -gt 1 ]]; then
     pids+=($!)
     names+=("$SVC")
   done
-  fail=0
-  for i in "${!pids[@]}"; do
-    if ! wait "${pids[$i]}"; then
-      echo "❌ Build failed: ${names[$i]}"
-      echo "--- tail ${LOG_DIR}/${names[$i]}.log (last 120 lines) ---"
-      tail -n 120 "${LOG_DIR}/${names[$i]}.log" 2>/dev/null || true
-      echo "--- (full log: ${LOG_DIR}/${names[$i]}.log) ---"
-      fail=1
-    fi
-  done
-  if [[ "$fail" -eq 0 ]]; then
-    rm -rf "${LOG_DIR}"
-  else
+  ok=()
+  fail=()
+  reap_parallel_builds pids names "$LOG_DIR" ok fail
+
+  echo "──────── Summary ────────"
+  printf "✅ OK (%d): %s\n" "${#ok[@]}" "${ok[*]:-(none)}"
+  printf "❌ Failed (%d): %s\n" "${#fail[@]}" "${fail[*]:-(none)}"
+
+  if (( ${#fail[@]} > 0 )); then
     echo "💡 Hint: parallel pushes can hit registry rate limits (HTTP 429); retry failed service alone or use sequential build."
   fi
-  [[ "$fail" -eq 0 ]] || exit 1
+
+  if (( ${#fail[@]} == 0 )); then
+    rm -rf "${LOG_DIR}"
+    exit 0
+  fi
+
+  if parallel_fail_strict || (( ${#ok[@]} == 0 )); then
+    exit 1
+  fi
+
+  echo "⚠️ BUILD_FAIL_SOFT=1: partial success (${#ok[@]} ok, ${#fail[@]} failed) — exiting 0. Logs: ${LOG_DIR}"
+  exit 0
 else
   for SVC in "${SERVICES[@]}"; do
     build_one_service "$SVC"
