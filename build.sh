@@ -13,6 +13,10 @@ FRONT_TAG="${FRONT_TAG:-latest}"
 # Frontend: multi-arch is slow on x86 (QEMU for arm64). For a fast local push use:
 #   FRONTEND_PLATFORMS=linux/amd64 ./build.sh frontend
 FRONTEND_PLATFORMS="${FRONTEND_PLATFORMS:-linux/amd64,linux/arm64}"
+# Run multiple service builds at once (separate processes). Heavy on CPU/RAM/Docker; opt-in:
+#   BUILD_PARALLEL=1 ./build.sh backend xray
+#   ./build.sh --parallel backend openvpn xray
+BUILD_PARALLEL="${BUILD_PARALLEL:-0}"
 
 ALL_SERVICES=("backend" "telegrambot" "openvpn" "xray" "frontend")
 
@@ -77,6 +81,33 @@ build_and_push_frontend() {
   echo "✅ Frontend built and pushed as: ${IMAGE_NAME}:${FRONT_TAG}"
 }
 
+build_one_service() {
+  local SVC=$1
+  case "$SVC" in
+    backend|telegrambot|openvpn|xray) build_and_push_dotnet "$SVC" ;;
+    frontend) build_and_push_frontend ;;
+    *)
+      echo "❌ Unknown service: $SVC"
+      echo "Allowed: ${ALL_SERVICES[*]}"
+      return 1
+      ;;
+  esac
+}
+
+parallel_enabled() {
+  local v="${BUILD_PARALLEL,,}"
+  [[ "$v" == "1" || "$v" == "true" || "$v" == "yes" ]]
+}
+
+ARGS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --parallel|-j) BUILD_PARALLEL=1; shift ;;
+    *) ARGS+=("$1"); shift ;;
+  esac
+done
+set -- "${ARGS[@]}"
+
 # If no args -> build all
 if [[ $# -eq 0 ]]; then
   SERVICES=("${ALL_SERVICES[@]}")
@@ -86,8 +117,7 @@ fi
 
 for SVC in "${SERVICES[@]}"; do
   case "$SVC" in
-    backend|telegrambot|openvpn|xray) build_and_push_dotnet "$SVC" ;;
-    frontend) build_and_push_frontend ;;
+    backend|telegrambot|openvpn|xray|frontend) ;;
     *)
       echo "❌ Unknown service: $SVC"
       echo "Allowed: ${ALL_SERVICES[*]}"
@@ -95,3 +125,26 @@ for SVC in "${SERVICES[@]}"; do
       ;;
   esac
 done
+
+if parallel_enabled && [[ ${#SERVICES[@]} -gt 1 ]]; then
+  echo "⚡ Parallel build for: ${SERVICES[*]}"
+  pids=()
+  names=()
+  for SVC in "${SERVICES[@]}"; do
+    ( build_one_service "$SVC" ) &
+    pids+=($!)
+    names+=("$SVC")
+  done
+  fail=0
+  for i in "${!pids[@]}"; do
+    if ! wait "${pids[$i]}"; then
+      echo "❌ Build failed: ${names[$i]}"
+      fail=1
+    fi
+  done
+  [[ "$fail" -eq 0 ]] || exit 1
+else
+  for SVC in "${SERVICES[@]}"; do
+    build_one_service "$SVC"
+  done
+fi
