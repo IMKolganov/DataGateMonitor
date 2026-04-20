@@ -1,8 +1,8 @@
 services:
   backend:
-    image: imkolganov/openvpn-gate-monitor-backend:latest
+    image: imkolganov/datagate-monitor-backend:latest
     pull_policy: always
-    container_name: open-vpn-gate-monitor-backend
+    container_name: datagate-monitor-backend
     restart: always
     networks:
       - openvpn_network
@@ -26,9 +26,9 @@ services:
       ELASTIC_INDEX_FORMAT: ${ELASTIC_INDEX_FORMAT:-OpenVPNGateMonitor-dev-logs-{0:yyyy.MM.dd}}
 
   frontend:
-    image: imkolganov/openvpn-gate-monitor-frontend:latest
+    image: imkolganov/datagate-monitor-frontend:latest
     pull_policy: always
-    container_name: open-vpn-gate-monitor-frontend
+    container_name: datagate-monitor-frontend
     restart: always
     networks:
       - openvpn_network

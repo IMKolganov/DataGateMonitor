@@ -6,7 +6,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 DOCKER_USER="${DOCKER_USER:-imkolganov}"
 # Image: ${DOCKER_USER}/${IMAGE_PREFIX}-<service>. Default matches docker-compose*.yml; override when retagging.
-IMAGE_PREFIX="${IMAGE_PREFIX:-openvpn-gate-monitor}"
+IMAGE_PREFIX="${IMAGE_PREFIX:-datagate-monitor}"
 BUILD_CONFIG="${BUILD_CONFIG:-Release}"
 BUILDER_NAME="${BUILDER_NAME:-multiarch-builder}"
 FRONT_TAG="${FRONT_TAG:-latest}"

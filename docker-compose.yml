@@ -1,8 +1,8 @@
 services:
   backend:
-    image: imkolganov/openvpn-gate-monitor-backend:latest
+    image: imkolganov/datagate-monitor-backend:latest
     pull_policy: always
-    container_name: open-vpn-gate-monitor-backend
+    container_name: datagate-monitor-backend
     restart: always
     networks:
       - openvpn_network
@@ -30,9 +30,9 @@ services:
       ELASTIC_INDEX_FORMAT: ${ELASTIC_INDEX_FORMAT:-OpenVPNGateMonitor-dev-logs-{0:yyyy.MM.dd}}
 
   frontend:
-    image: imkolganov/openvpn-gate-monitor-frontend:latest
+    image: imkolganov/datagate-monitor-frontend:latest
     pull_policy: always
-    container_name: open-vpn-gate-monitor-frontend
+    container_name: datagate-monitor-frontend
     restart: always
     networks:
       - openvpn_network
@@ -45,9 +45,9 @@ services:
       VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-your_google_client_id}
 
   telegrambot:
-    image: imkolganov/openvpn-gate-monitor-telegrambot:latest
+    image: imkolganov/datagate-monitor-telegrambot:latest
     pull_policy: always
-    container_name: open-vpn-gate-monitor-telegrambot
+    container_name: datagate-monitor-telegrambot
     restart: always
     networks:
       - backend_network
@@ -83,9 +83,9 @@ services:
       - "${TELEGRAMBOT_PORT_2:-5584}:${TELEGRAMBOT_PORT_2:-5584}"
 
   openvpn_udp:
-    image: imkolganov/openvpn-gate-monitor-openvpn:latest
+    image: imkolganov/datagate-monitor-openvpn:latest
     pull_policy: always
-    container_name: openvpn_udp
+    container_name: datagate-monitor-openvpn-udp
     restart: unless-stopped
     networks:
       - backend_network
@@ -113,9 +113,9 @@ services:
       VPN_NETMASK: "255.255.255.0"
 
   openvpn_tcp:
-    image: imkolganov/openvpn-gate-monitor-openvpn:latest
+    image: imkolganov/datagate-monitor-openvpn:latest
     pull_policy: always
-    container_name: openvpn_tcp
+    container_name: datagate-monitor-openvpn-tcp
     restart: unless-stopped
     networks:
       - backend_network

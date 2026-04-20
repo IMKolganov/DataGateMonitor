@@ -6,7 +6,7 @@ services:
       args:
         TARGETARCH: ${TARGETARCH:?TARGETARCH is required}
         BUILD_CONFIGURATION: ${BUILD_CONFIGURATION:?BUILD_CONFIGURATION is required}
-    container_name: open-vpn-gate-monitor-backend
+    container_name: datagate-monitor-backend
     restart: always
     networks:
       - openvpn_network
@@ -49,7 +49,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: open-vpn-gate-monitor-frontend
+    container_name: datagate-monitor-frontend
     restart: always
     networks:
       - openvpn_network
@@ -70,7 +70,7 @@ services:
       args:
         TARGETARCH: ${TARGETARCH:?TARGETARCH is required}
         BUILD_CONFIGURATION: ${BUILD_CONFIGURATION:?BUILD_CONFIGURATION is required}
-    container_name: open-vpn-gate-monitor-telegrambot
+    container_name: datagate-monitor-telegrambot
     restart: always
     networks:
       - backend_network
