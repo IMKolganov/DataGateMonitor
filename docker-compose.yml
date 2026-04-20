@@ -149,6 +149,32 @@ services:
       VPN_SUBNET: "10.50.28.0"
       VPN_NETMASK: "255.255.255.0"
 
+  # Xray-core + DataGateXRayManager (VLESS API on host 8443; manager HTTP API on 5012 — avoids 5010/5011 used by OpenVPN sidecars)
+  xray:
+    image: imkolganov/datagate-monitor-xray:latest
+    pull_policy: always
+    container_name: datagate-monitor-xray
+    restart: unless-stopped
+    networks:
+      - backend_network
+    volumes:
+      - xray_data:/data
+    ports:
+      - "8443:443"
+      - "5012:5010"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      DATA_DIR: /data
+      PORT: "443"
+      API_PORT: "5010"
+      PROTO: tcp
+      XRayManagement__Host: "127.0.0.1"
+      XRayManagement__Port: "10085"
+      Backend__BaseUrl: "http://backend:5581/"
+      DNS1: "8.8.8.8"
+      DNS2: "8.8.4.4"
+      XRAY_TRANSPORT_MODE: "${XRAY_TRANSPORT_MODE:-plain}"
+
   postgres_backend:
     image: postgres:latest
     container_name: datagate_postgres_backend
@@ -168,6 +194,7 @@ services:
 volumes:
   openvpn_data_tcp:
   openvpn_data_udp:
+  xray_data:
   postgres_data_backend:
   backend_data:
   tgbot_data:

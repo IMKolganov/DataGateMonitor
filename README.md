@@ -13,8 +13,12 @@ https://github.com/IMKolganov/OpenVPNGateMonitor
 
 ### 1) Clone
 ```bash
-git clone https://github.com/IMKolganov/OpenVPNGateMonitor.git
+git clone --recurse-submodules https://github.com/IMKolganov/OpenVPNGateMonitor.git
 cd OpenVPNGateMonitor
+```
+If you already cloned without submodules:
+```bash
+git submodule update --init --recursive
 ```
 
 ### 2) Start
@@ -27,6 +31,7 @@ docker compose --env-file .env.prod.x64 up -d --pull always
 - Dashboard: `http://localhost:5582`
 - API: `http://localhost:5581`
 - PostgreSQL: `localhost:5432` (container: `postgres_backend:5432`)
+- Xray sidecar (optional stack): manager API `http://localhost:5012`, VLESS `localhost:8443` (see `docker-compose.yml` service `xray`)
 
 **Note for development / building locally**
 If you don’t want to use prebuilt images (or you’re developing), run:
@@ -38,7 +43,8 @@ docker compose -f docker-compose-local.yml --env-file .env.dev.x64 up -d --build
 ```
 backend/          # ASP.NET Core API & services
 frontend/         # React UI
-openvpn/          # OpenVPN TCP/UDP sidecars + EasyRSA paths
+openvpn/          # OpenVPN TCP/UDP sidecars + EasyRSA paths (submodule)
+xray/             # Xray-core + DataGateXRayManager sidecar (submodule)
 telegrambot/      # Optional ASP.NET Core Telegram bot
 docker-compose.yml
 docker-compose-local.yml
@@ -51,11 +57,12 @@ docker-compose-local.yml
 - Frontend: `BACKEND_URL`
 - Telegram bot (optional): `TELEGRAMBOT_BOT_TOKEN`, `HOST_ADDRESS`, `USE_CERTIFICATE`, `AUTO_GENERATE_CERTIFICATE`, `CERTIFICATE_*`, `DASHBOARDAPI_*`, `ELASTIC_*`
 - OpenVPN sidecars: `DATA_DIR`, `EASY_RSA_PATH`, `PORT`, `API_PORT`, `OpenVpnManagement__Port`, `BACKEND__BASEURL`
+- Xray sidecar: `DATA_DIR`, `PORT`, `API_PORT`, `XRayManagement__Host`, `XRayManagement__Port`, `Backend__BaseUrl`, `XRAY_TRANSPORT_MODE` (`plain` / `tls` / `reality`)
 - PostgreSQL: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
 
 ## 🔐 Volumes
 ```
-openvpn_data_udp   openvpn_data_tcp   postgres_data_backend   backend_data
+openvpn_data_udp   openvpn_data_tcp   xray_data   postgres_data_backend   backend_data
 ```
 
 ## 📝 License
