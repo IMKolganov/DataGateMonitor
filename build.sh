@@ -14,7 +14,7 @@ FRONT_TAG="${FRONT_TAG:-latest}"
 #   FRONTEND_PLATFORMS=linux/amd64 ./build.sh frontend
 FRONTEND_PLATFORMS="${FRONTEND_PLATFORMS:-linux/amd64,linux/arm64}"
 
-ALL_SERVICES=("backend" "telegrambot" "openvpn" "frontend")
+ALL_SERVICES=("backend" "telegrambot" "openvpn" "xray" "frontend")
 
 docker buildx inspect "${BUILDER_NAME}" >/dev/null 2>&1 || {
   echo "🧱 Creating buildx builder '${BUILDER_NAME}'..."
@@ -86,7 +86,7 @@ fi
 
 for SVC in "${SERVICES[@]}"; do
   case "$SVC" in
-    backend|telegrambot|openvpn) build_and_push_dotnet "$SVC" ;;
+    backend|telegrambot|openvpn|xray) build_and_push_dotnet "$SVC" ;;
     frontend) build_and_push_frontend ;;
     *)
       echo "❌ Unknown service: $SVC"
