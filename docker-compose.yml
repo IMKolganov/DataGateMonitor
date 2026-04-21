@@ -151,9 +151,9 @@ services:
       VPN_SUBNET: "10.50.28.0"
       VPN_NETMASK: "255.255.255.0"
 
-  # Xray-core + DataGateXRayManager. VLESS listens on 443 inside the stack (reach as xray:443); do not bind host 443/8443
-  # here — terminate TLS on nginx and stream/proxy to this container. Manager API: host → container 5010 (default 15012).
-  # Optional direct VLESS on host for labs: add "30443:443" via docker-compose.override.yml or Portainer.
+  # Xray-core + DataGateXRayManager. VLESS listens on 443 inside the container. Host 443 is usually taken by nginx (HTTPS);
+  # plain TCP VLESS cannot share IP:443 with TLS sites — publish VLESS on a dedicated host port (default 30443).
+  # Manager API: host → container 5010 (default 15012).
   xray:
     image: imkolganov/datagate-monitor-xray:latest
     pull_policy: always
@@ -165,6 +165,7 @@ services:
       - xray_data:/data
     ports:
       - "${XRAY_MANAGER_HOST_PORT:-15012}:5010"
+      - "${XRAY_VLESS_HOST_PORT:-30443}:443"
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       DATA_DIR: /data
