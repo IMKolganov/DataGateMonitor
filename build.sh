@@ -10,9 +10,10 @@ IMAGE_PREFIX="${IMAGE_PREFIX:-datagate-monitor}"
 BUILD_CONFIG="${BUILD_CONFIG:-Release}"
 BUILDER_NAME="${BUILDER_NAME:-multiarch-builder}"
 FRONT_TAG="${FRONT_TAG:-latest}"
-# Frontend: multi-arch is slow on x86 (QEMU for arm64). For a fast local push use:
-#   FRONTEND_PLATFORMS=linux/amd64 ./build.sh frontend
-FRONTEND_PLATFORMS="${FRONTEND_PLATFORMS:-linux/amd64,linux/arm64}"
+# Frontend image platforms (comma-separated). Default is amd64 only — fast on typical x86 runners
+# and laptops. arm64 under QEMU is very slow (~10+ min). For Docker Hub multi-arch manifest:
+#   FRONTEND_PLATFORMS=linux/amd64,linux/arm64 ./build.sh frontend
+FRONTEND_PLATFORMS="${FRONTEND_PLATFORMS:-linux/amd64}"
 # Run multiple service builds at once (separate processes). Heavy on CPU/RAM/Docker; opt-in:
 #   BUILD_PARALLEL=1 ./build.sh backend xray
 #   ./build.sh --parallel backend openvpn xray
