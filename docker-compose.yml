@@ -20,7 +20,8 @@ services:
       DB_CONNECTION_STRING_DATAGATE: ${DB_CONNECTION_STRING_DATAGATE:-Host=postgres_backend;Port=5432;Database=datagate_backend;Username=backend_user;Password=securepassword_backend}
       DB_DEFAULT_SCHEMA: xgb_dashopnvpn
       DB_MIGRATION_TABLE: __EFMigrationsHistoryDashboardVpn
-      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret}
+      # HS256 needs signing key ≥128 bits (≥16 ASCII chars). Old default "your_jwt_secret" was 15 chars.
+      JWT_SECRET: ${JWT_SECRET:-datagate_dev_jwt_secret_16}
       Jwt__RefreshPepper: ${Jwt__RefreshPepper:-dev-only-pepper}
       Jwt__LifetimeMinutes: ${Jwt__LifetimeMinutes:-60}
       # GoogleAuth (same shape as production docker-compose)
@@ -34,6 +35,7 @@ services:
       ELASTIC_USERNAME: ${ELASTIC_USERNAME:-elastic}
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-your-password}
       ELASTIC_INDEX_FORMAT: ${ELASTIC_INDEX_FORMAT:-OpenVPNGateMonitor-dev-logs-{0:yyyy.MM.dd}}
+      BACKGROUND_SERVICE_STARTUP_DELAY_SECONDS: ${BACKGROUND_SERVICE_STARTUP_DELAY_SECONDS:-5}
 
   frontend:
     image: imkolganov/datagate-monitor-frontend:latest
@@ -47,7 +49,7 @@ services:
     depends_on:
       - backend
     environment:
-      BACKEND_URL: http://backend:5581
+      BACKEND_INTERNAL_URL: http://backend:5581
       VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-your_google_client_id}
 
   telegrambot:

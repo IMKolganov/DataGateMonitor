@@ -18,12 +18,13 @@ services:
       DB_CONNECTION_STRING_DATAGATE: ${DB_CONNECTION_STRING_DATAGATE:-Host=postgres_backend;Port=5432;Database=datagate_backend;Username=backend_user;Password=securepassword_backend}
       DB_DEFAULT_SCHEMA: xgb_dashopnvpn
       DB_MIGRATION_TABLE: __EFMigrationsHistoryDashboardVpn
-      JWT_SECRET:
+      JWT_SECRET: ${JWT_SECRET:-datagate_dev_jwt_secret_16}
       # 📊 Elasticsearch config
       ELASTIC_URI: ${ELASTIC_URI:-http://elasticsearch:9200}
       ELASTIC_USERNAME: ${ELASTIC_USERNAME:-elastic}
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-your-password}
       ELASTIC_INDEX_FORMAT: ${ELASTIC_INDEX_FORMAT:-OpenVPNGateMonitor-dev-logs-{0:yyyy.MM.dd}}
+      BACKGROUND_SERVICE_STARTUP_DELAY_SECONDS: ${BACKGROUND_SERVICE_STARTUP_DELAY_SECONDS:-5}
 
   frontend:
     image: imkolganov/datagate-monitor-frontend:latest
@@ -37,7 +38,8 @@ services:
     depends_on:
       - backend
     environment:
-      BACKEND_URL: http://backend:5581
+      # Only nginx proxy target (same-origin /api in browser). Do not set BACKEND_URL to backend: — host browser cannot resolve it.
+      BACKEND_INTERNAL_URL: http://backend:5581
 
 volumes:
   backend_data:
