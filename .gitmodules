@@ -10,3 +10,6 @@
 [submodule "openvpn"]
 	path = openvpn
 	url = https://github.com/IMKolganov/DataGateCertManager
+[submodule "xray"]
+	path = xray
+	url = https://github.com/IMKolganov/DataGateXRayManager
