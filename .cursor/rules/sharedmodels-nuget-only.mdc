@@ -1,0 +1,11 @@
+---
+description: DataGateMonitor.SharedModels must never be referenced as a local project; use NuGet only.
+alwaysApply: true
+---
+
+# SharedModels consumption
+
+- **Never** add `<ProjectReference>` to `DataGateMonitor.SharedModels` from any project in this repo (backend, tests, Docker, etc.).
+- **Always** use `<PackageReference Include="DataGateMonitor.SharedModels" Version="…" />` and restore from NuGet (or your CI’s configured feeds).
+- If the code needs new types or enum members in SharedModels: bump the **package version** in `DataGateMonitor.SharedModels.csproj`, publish the package, then bump `Version="…"` in all consuming `.csproj` files. Do **not** substitute a project reference to “unblock” the build.
+- Docker/backend restore must **not** copy `DataGateMonitor.SharedModels.csproj` for restore unless the image is explicitly building that package—default layout assumes SharedModels comes from NuGet.
