@@ -47,6 +47,16 @@ services:
       ELASTIC_USERNAME: ${ELASTIC_USERNAME:-elastic}
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-your-password}
       ELASTIC_INDEX_FORMAT: ${ELASTIC_INDEX_FORMAT:-OpenVPNGateMonitor-dev-logs-{0:yyyy.MM.dd}}
+      # Email sender provider config (smtp|resend)
+      EmailSender__Provider: ${EmailSender__Provider:-smtp}
+      EmailSender__FromEmail: ${EmailSender__FromEmail:-noreply@datagateapp.com}
+      EmailSender__FromName: ${EmailSender__FromName:-DataGate}
+      EmailSender__ResendApiKey: ${EmailSender__ResendApiKey:-}
+      EmailSender__Host: ${EmailSender__Host:-smtp.example.com}
+      EmailSender__Port: ${EmailSender__Port:-587}
+      EmailSender__UseSsl: ${EmailSender__UseSsl:-true}
+      EmailSender__Username: ${EmailSender__Username:-smtp_user}
+      EmailSender__Password: ${EmailSender__Password:-smtp_password}
 
   frontend:
     build:
