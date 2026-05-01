@@ -14,10 +14,10 @@ FRONT_TAG="${FRONT_TAG:-latest}"
 # and laptops. arm64 under QEMU is very slow (~10+ min). For Docker Hub multi-arch manifest:
 #   FRONTEND_PLATFORMS=linux/amd64,linux/arm64 ./build.sh frontend
 FRONTEND_PLATFORMS="${FRONTEND_PLATFORMS:-linux/amd64}"
-# Run multiple service builds at once (separate processes). Heavy on CPU/RAM/Docker; opt-in:
-#   BUILD_PARALLEL=1 ./build.sh backend xray
-#   ./build.sh --parallel backend openvpn xray
-BUILD_PARALLEL="${BUILD_PARALLEL:-0}"
+# Run multiple service builds at once (separate processes). Heavy on CPU/RAM/Docker; opt-out:
+#   BUILD_PARALLEL=0 ./build.sh backend xray
+#   ./build.sh --no-parallel backend openvpn xray
+BUILD_PARALLEL="${BUILD_PARALLEL:-1}"
 # Parallel: if some services fail, still exit 0 when at least one succeeded (local-friendly).
 # CI strict: BUILD_FAIL_SOFT=0
 BUILD_FAIL_SOFT="${BUILD_FAIL_SOFT:-1}"
@@ -159,13 +159,14 @@ build_one_service() {
 
 parallel_enabled() {
   local v="${BUILD_PARALLEL,,}"
-  [[ "$v" == "1" || "$v" == "true" || "$v" == "yes" ]]
+  [[ "$v" != "0" && "$v" != "false" && "$v" != "no" && "$v" != "off" ]]
 }
 
 ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --parallel|-j) BUILD_PARALLEL=1; shift ;;
+    --no-parallel|--sequential) BUILD_PARALLEL=0; shift ;;
     *) ARGS+=("$1"); shift ;;
   esac
 done
