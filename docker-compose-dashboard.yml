@@ -25,6 +25,7 @@ services:
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-your-password}
       ELASTIC_INDEX_FORMAT: ${ELASTIC_INDEX_FORMAT:-OpenVPNGateMonitor-dev-logs-{0:yyyy.MM.dd}}
       BACKGROUND_SERVICE_STARTUP_DELAY_SECONDS: ${BACKGROUND_SERVICE_STARTUP_DELAY_SECONDS:-5}
+      OPENVPN_POLLING_MAX_DEGREE_OF_PARALLELISM: ${OPENVPN_POLLING_MAX_DEGREE_OF_PARALLELISM:-10}
       # Email (smtp|resend) — same as root docker-compose.yml
       EmailSender__Provider: ${EmailSender__Provider:-smtp}
       EmailSender__FromEmail: ${EmailSender__FromEmail:-noreply@datagateapp.com}
