@@ -24,6 +24,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-datagate_dev_jwt_secret_16}
       Jwt__RefreshPepper: ${Jwt__RefreshPepper:-dev-only-pepper}
       Jwt__LifetimeMinutes: ${Jwt__LifetimeMinutes:-60}
+      Jwt__AdminIdleTimeoutMinutes: ${Jwt__AdminIdleTimeoutMinutes:-15}
       # GoogleAuth (same shape as production docker-compose)
       GoogleAuth__ClientId: ${GoogleAuth__ClientId:-your_google_client_id}
       GoogleAuth__IosClientId: ${GoogleAuth__IosClientId:-your_google_ios_client_id}
