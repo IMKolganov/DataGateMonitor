@@ -24,6 +24,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-datagate_dev_jwt_secret_16}
       Jwt__RefreshPepper: ${Jwt__RefreshPepper:-dev-only-pepper}
       Jwt__LifetimeMinutes: ${Jwt__LifetimeMinutes:-60}
+      Jwt__AdminIdleTimeoutMinutes: ${Jwt__AdminIdleTimeoutMinutes:-15}
       # GoogleAuth (same shape as production docker-compose)
       GoogleAuth__ClientId: ${GoogleAuth__ClientId:-your_google_client_id}
       GoogleAuth__IosClientId: ${GoogleAuth__IosClientId:-your_google_ios_client_id}
@@ -36,6 +37,7 @@ services:
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-your-password}
       ELASTIC_INDEX_FORMAT: ${ELASTIC_INDEX_FORMAT:-OpenVPNGateMonitor-dev-logs-{0:yyyy.MM.dd}}
       BACKGROUND_SERVICE_STARTUP_DELAY_SECONDS: ${BACKGROUND_SERVICE_STARTUP_DELAY_SECONDS:-5}
+      OPENVPN_POLLING_MAX_DEGREE_OF_PARALLELISM: ${OPENVPN_POLLING_MAX_DEGREE_OF_PARALLELISM:-10}
       # Email sender provider config (smtp|resend)
       EmailSender__Provider: ${EmailSender__Provider:-smtp}
       EmailSender__FromEmail: ${EmailSender__FromEmail:-noreply@datagateapp.com}
