@@ -1,8 +1,8 @@
 services:
   backend:
-    image: imkolganov/openvpn-gate-monitor-backend:latest
+    image: imkolganov/datagate-monitor-backend:latest
     pull_policy: always
-    container_name: open-vpn-gate-monitor-backend
+    container_name: datagate-monitor-backend
     restart: always
     networks:
       - openvpn_network
@@ -18,17 +18,29 @@ services:
       DB_CONNECTION_STRING_DATAGATE: ${DB_CONNECTION_STRING_DATAGATE:-Host=postgres_backend;Port=5432;Database=datagate_backend;Username=backend_user;Password=securepassword_backend}
       DB_DEFAULT_SCHEMA: xgb_dashopnvpn
       DB_MIGRATION_TABLE: __EFMigrationsHistoryDashboardVpn
-      JWT_SECRET:
+      JWT_SECRET: ${JWT_SECRET:-datagate_dev_jwt_secret_16}
       # 📊 Elasticsearch config
       ELASTIC_URI: ${ELASTIC_URI:-http://elasticsearch:9200}
       ELASTIC_USERNAME: ${ELASTIC_USERNAME:-elastic}
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-your-password}
       ELASTIC_INDEX_FORMAT: ${ELASTIC_INDEX_FORMAT:-OpenVPNGateMonitor-dev-logs-{0:yyyy.MM.dd}}
+      BACKGROUND_SERVICE_STARTUP_DELAY_SECONDS: ${BACKGROUND_SERVICE_STARTUP_DELAY_SECONDS:-5}
+      OPENVPN_POLLING_MAX_DEGREE_OF_PARALLELISM: ${OPENVPN_POLLING_MAX_DEGREE_OF_PARALLELISM:-10}
+      # Email (smtp|resend) — same as root docker-compose.yml
+      EmailSender__Provider: ${EmailSender__Provider:-smtp}
+      EmailSender__FromEmail: ${EmailSender__FromEmail:-noreply@datagateapp.com}
+      EmailSender__FromName: ${EmailSender__FromName:-DataGate}
+      EmailSender__ResendApiKey: ${EmailSender__ResendApiKey:-}
+      EmailSender__Host: ${EmailSender__Host:-smtp.example.com}
+      EmailSender__Port: ${EmailSender__Port:-587}
+      EmailSender__UseSsl: ${EmailSender__UseSsl:-true}
+      EmailSender__Username: ${EmailSender__Username:-smtp_user}
+      EmailSender__Password: ${EmailSender__Password:-smtp_password}
 
   frontend:
-    image: imkolganov/openvpn-gate-monitor-frontend:latest
+    image: imkolganov/datagate-monitor-frontend:latest
     pull_policy: always
-    container_name: open-vpn-gate-monitor-frontend
+    container_name: datagate-monitor-frontend
     restart: always
     networks:
       - openvpn_network
@@ -37,7 +49,8 @@ services:
     depends_on:
       - backend
     environment:
-      BACKEND_URL: http://backend:5581
+      # Only nginx proxy target (same-origin /api in browser). Do not set BACKEND_URL to backend: — host browser cannot resolve it.
+      BACKEND_INTERNAL_URL: http://backend:5581
 
 volumes:
   backend_data:
