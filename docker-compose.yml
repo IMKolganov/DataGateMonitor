@@ -1,8 +1,8 @@
 services:
   backend:
-    image: imkolganov/openvpn-gate-monitor-backend:latest
+    image: imkolganov/datagate-monitor-backend:latest
     pull_policy: always
-    container_name: open-vpn-gate-monitor-backend
+    container_name: datagate-monitor-backend
     restart: always
     networks:
       - openvpn_network
@@ -20,19 +20,39 @@ services:
       DB_CONNECTION_STRING_DATAGATE: ${DB_CONNECTION_STRING_DATAGATE:-Host=postgres_backend;Port=5432;Database=datagate_backend;Username=backend_user;Password=securepassword_backend}
       DB_DEFAULT_SCHEMA: xgb_dashopnvpn
       DB_MIGRATION_TABLE: __EFMigrationsHistoryDashboardVpn
-      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret}
+      # HS256 needs signing key ≥128 bits (≥16 ASCII chars). Old default "your_jwt_secret" was 15 chars.
+      JWT_SECRET: ${JWT_SECRET:-datagate_dev_jwt_secret_16}
+      Jwt__RefreshPepper: ${Jwt__RefreshPepper:-dev-only-pepper}
+      Jwt__LifetimeMinutes: ${Jwt__LifetimeMinutes:-60}
+      Jwt__AdminIdleTimeoutMinutes: ${Jwt__AdminIdleTimeoutMinutes:-15}
+      # GoogleAuth (same shape as production docker-compose)
       GoogleAuth__ClientId: ${GoogleAuth__ClientId:-your_google_client_id}
       GoogleAuth__IosClientId: ${GoogleAuth__IosClientId:-your_google_ios_client_id}
+      GoogleAuth__ClientSecret: ${GoogleAuth__ClientSecret:-your_google_secret}
+      GoogleAuth__DesktopClientId: ${GoogleAuth__DesktopClientId:-your_google_desktop_client_id}
+      GoogleAuth__DesktopClientSecret: ${GoogleAuth__DesktopClientSecret:-your_google_desktop_secret}
       # 📊 Elasticsearch config
       ELASTIC_URI: ${ELASTIC_URI:-http://elasticsearch:9200}
       ELASTIC_USERNAME: ${ELASTIC_USERNAME:-elastic}
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-your-password}
       ELASTIC_INDEX_FORMAT: ${ELASTIC_INDEX_FORMAT:-OpenVPNGateMonitor-dev-logs-{0:yyyy.MM.dd}}
+      BACKGROUND_SERVICE_STARTUP_DELAY_SECONDS: ${BACKGROUND_SERVICE_STARTUP_DELAY_SECONDS:-5}
+      OPENVPN_POLLING_MAX_DEGREE_OF_PARALLELISM: ${OPENVPN_POLLING_MAX_DEGREE_OF_PARALLELISM:-10}
+      # Email sender provider config (smtp|resend)
+      EmailSender__Provider: ${EmailSender__Provider:-smtp}
+      EmailSender__FromEmail: ${EmailSender__FromEmail:-noreply@datagateapp.com}
+      EmailSender__FromName: ${EmailSender__FromName:-DataGate}
+      EmailSender__ResendApiKey: ${EmailSender__ResendApiKey:-}
+      EmailSender__Host: ${EmailSender__Host:-smtp.example.com}
+      EmailSender__Port: ${EmailSender__Port:-587}
+      EmailSender__UseSsl: ${EmailSender__UseSsl:-true}
+      EmailSender__Username: ${EmailSender__Username:-smtp_user}
+      EmailSender__Password: ${EmailSender__Password:-smtp_password}
 
   frontend:
-    image: imkolganov/openvpn-gate-monitor-frontend:latest
+    image: imkolganov/datagate-monitor-frontend:latest
     pull_policy: always
-    container_name: open-vpn-gate-monitor-frontend
+    container_name: datagate-monitor-frontend
     restart: always
     networks:
       - openvpn_network
@@ -41,13 +61,13 @@ services:
     depends_on:
       - backend
     environment:
-      BACKEND_URL: http://backend:5581
+      BACKEND_INTERNAL_URL: http://backend:5581
       VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-your_google_client_id}
 
   telegrambot:
-    image: imkolganov/openvpn-gate-monitor-telegrambot:latest
+    image: imkolganov/datagate-monitor-telegrambot:latest
     pull_policy: always
-    container_name: open-vpn-gate-monitor-telegrambot
+    container_name: datagate-monitor-telegrambot
     restart: always
     networks:
       - backend_network
@@ -83,9 +103,9 @@ services:
       - "${TELEGRAMBOT_PORT_2:-5584}:${TELEGRAMBOT_PORT_2:-5584}"
 
   openvpn_udp:
-    image: imkolganov/openvpn-gate-monitor-openvpn:latest
+    image: imkolganov/datagate-monitor-openvpn:latest
     pull_policy: always
-    container_name: openvpn_udp
+    container_name: datagate-monitor-openvpn-udp
     restart: unless-stopped
     networks:
       - backend_network
@@ -113,9 +133,9 @@ services:
       VPN_NETMASK: "255.255.255.0"
 
   openvpn_tcp:
-    image: imkolganov/openvpn-gate-monitor-openvpn:latest
+    image: imkolganov/datagate-monitor-openvpn:latest
     pull_policy: always
-    container_name: openvpn_tcp
+    container_name: datagate-monitor-openvpn-tcp
     restart: unless-stopped
     networks:
       - backend_network
@@ -143,6 +163,34 @@ services:
       VPN_SUBNET: "10.50.28.0"
       VPN_NETMASK: "255.255.255.0"
 
+  # Xray-core + DataGateXRayManager. VLESS listens on 443 inside the container. Host 443 is usually taken by nginx (HTTPS);
+  # plain TCP VLESS cannot share IP:443 with TLS sites — publish VLESS on a dedicated host port (default 30443).
+  # Manager API: host → container 5010 (default 15012).
+  xray:
+    image: imkolganov/datagate-monitor-xray:latest
+    pull_policy: always
+    container_name: datagate-monitor-xray
+    restart: unless-stopped
+    networks:
+      - backend_network
+    volumes:
+      - xray_data:/data
+    ports:
+      - "${XRAY_MANAGER_HOST_PORT:-15012}:5010"
+      - "${XRAY_VLESS_HOST_PORT:-30443}:443"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      DATA_DIR: /data
+      PORT: "443"
+      API_PORT: "5010"
+      PROTO: tcp
+      XRayManagement__Host: "127.0.0.1"
+      XRayManagement__Port: "10085"
+      Backend__BaseUrl: "http://backend:5581/"
+      DNS1: "8.8.8.8"
+      DNS2: "8.8.4.4"
+      XRAY_TRANSPORT_MODE: "${XRAY_TRANSPORT_MODE:-plain}"
+
   postgres_backend:
     image: postgres:latest
     container_name: datagate_postgres_backend
@@ -162,6 +210,7 @@ services:
 volumes:
   openvpn_data_tcp:
   openvpn_data_udp:
+  xray_data:
   postgres_data_backend:
   backend_data:
   tgbot_data:

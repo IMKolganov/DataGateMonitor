@@ -6,7 +6,7 @@ services:
       args:
         TARGETARCH: ${TARGETARCH:?TARGETARCH is required}
         BUILD_CONFIGURATION: ${BUILD_CONFIGURATION:?BUILD_CONFIGURATION is required}
-    container_name: open-vpn-gate-monitor-backend
+    container_name: datagate-monitor-backend
     restart: always
     networks:
       - openvpn_network
@@ -28,8 +28,12 @@ services:
       DB_DEFAULT_SCHEMA: xgb_dashopnvpn
       DB_MIGRATION_TABLE: __EFMigrationsHistoryDashboardVpn
 
+      # First VPN background poll waits N seconds (OpenVpnBackgroundService); 0 disables.
+      BACKGROUND_SERVICE_STARTUP_DELAY_SECONDS: ${BACKGROUND_SERVICE_STARTUP_DELAY_SECONDS:-5}
+      OPENVPN_POLLING_MAX_DEGREE_OF_PARALLELISM: ${OPENVPN_POLLING_MAX_DEGREE_OF_PARALLELISM:-10}
+
       #JWT
-      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret}
+      JWT_SECRET: ${JWT_SECRET:-datagate_dev_jwt_secret_16}
       Jwt__RefreshPepper: ${Jwt__RefreshPepper:-dev-only-pepper}
 
       # GoogleAuth config
@@ -44,12 +48,22 @@ services:
       ELASTIC_USERNAME: ${ELASTIC_USERNAME:-elastic}
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-your-password}
       ELASTIC_INDEX_FORMAT: ${ELASTIC_INDEX_FORMAT:-OpenVPNGateMonitor-dev-logs-{0:yyyy.MM.dd}}
+      # Email sender provider config (smtp|resend)
+      EmailSender__Provider: ${EmailSender__Provider:-smtp}
+      EmailSender__FromEmail: ${EmailSender__FromEmail:-noreply@datagateapp.com}
+      EmailSender__FromName: ${EmailSender__FromName:-DataGate}
+      EmailSender__ResendApiKey: ${EmailSender__ResendApiKey:-}
+      EmailSender__Host: ${EmailSender__Host:-smtp.example.com}
+      EmailSender__Port: ${EmailSender__Port:-587}
+      EmailSender__UseSsl: ${EmailSender__UseSsl:-true}
+      EmailSender__Username: ${EmailSender__Username:-smtp_user}
+      EmailSender__Password: ${EmailSender__Password:-smtp_password}
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: open-vpn-gate-monitor-frontend
+    container_name: datagate-monitor-frontend
     restart: always
     networks:
       - openvpn_network
@@ -60,8 +74,9 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      # backend via host
+      # Browser env.js (optional). Nginx proxies /api using BACKEND_INTERNAL_URL (Docker DNS).
       BACKEND_URL: http://host.docker.internal:5581
+      BACKEND_INTERNAL_URL: http://backend:5581
 
   telegrambot:
     build:
@@ -70,7 +85,7 @@ services:
       args:
         TARGETARCH: ${TARGETARCH:?TARGETARCH is required}
         BUILD_CONFIGURATION: ${BUILD_CONFIGURATION:?BUILD_CONFIGURATION is required}
-    container_name: open-vpn-gate-monitor-telegrambot
+    container_name: datagate-monitor-telegrambot
     restart: always
     networks:
       - backend_network
@@ -176,6 +191,39 @@ services:
       # backend via host
       BACKEND__BASEURL: http://host.docker.internal:5581/
 
+  # Submodule: ./xray — VLESS published on 30443 by default (not 443/8443); manager on 15012. Override via .env if needed.
+  xray:
+    build:
+      context: ./xray
+      dockerfile: Dockerfile
+    image: local-datagate-monitor-xray:net10
+    pull_policy: never
+    container_name: datagate-monitor-xray-local
+    restart: unless-stopped
+    networks:
+      - backend_network
+    depends_on:
+      - backend
+    volumes:
+      - xray_data:/data
+    ports:
+      - "${XRAY_VLESS_HOST_PORT:-30443}:443"
+      - "${XRAY_MANAGER_HOST_PORT:-15012}:5010"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      DATA_DIR: /data
+      PORT: "443"
+      API_PORT: "5010"
+      PROTO: tcp
+      XRayManagement__Host: "127.0.0.1"
+      XRayManagement__Port: "10085"
+      Backend__BaseUrl: http://host.docker.internal:5581/
+      DNS1: "8.8.8.8"
+      DNS2: "8.8.4.4"
+      XRAY_TRANSPORT_MODE: "${XRAY_TRANSPORT_MODE:-plain}"
+
   postgres_backend:
     image: postgres:latest
     container_name: datagate_postgres_backend
@@ -195,6 +243,7 @@ services:
 volumes:
   openvpn_data_tcp:
   openvpn_data_udp:
+  xray_data:
   postgres_data_backend:
   backend_data:
 
