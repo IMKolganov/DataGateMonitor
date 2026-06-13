@@ -1,4 +1,7 @@
-# DataGate Monitor — development
+<h1 align="left">
+  <img src="frontend/public/favicon.svg" width="32" height="32" alt="" />
+  DataGate Monitor — development
+</h1>
 
 Monorepo dev guide. Production quick start: [README.md](README.md).
 
