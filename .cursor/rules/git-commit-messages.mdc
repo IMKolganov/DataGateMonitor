@@ -1,0 +1,11 @@
+---
+description: Git commit message conventions for this repository
+alwaysApply: true
+---
+
+# Git commit messages
+
+- Write commit messages in English unless the user explicitly asks for another language.
+- Do **not** add attribution lines such as `Made-with: Cursor`, `Co-authored-by: Cursor`, or similar tool/agent footers.
+- Keep messages focused on **why** the change was made; one or two sentences is enough for simple fixes.
+- When bumping a service version, update `Version`, `AssemblyVersion`, and `FileVersion` together in the same commit.
