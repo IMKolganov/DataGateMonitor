@@ -1,5 +1,5 @@
 <h1 align="left">
-  <img src="frontend/public/favicon.svg" width="32" height="32" alt="" />
+  <img src="docs/assets/datagate.svg" width="32" height="32" alt="" />
   DataGate Monitor — development
 </h1>
 
@@ -72,7 +72,7 @@ npm run dev
 
 | Resource | Link |
 |----------|------|
-| <img src="https://raw.githubusercontent.com/IMKolganov/DataGateMonitorFrontend/main/public/favicon.svg" width="16" height="16" alt="" /> **DataGate** | [datagateapp.com](https://datagateapp.com/) |
+| <img src="docs/assets/datagate.svg" width="16" height="16" alt="" /> **DataGate** | [datagateapp.com](https://datagateapp.com/) |
 | <img src="https://cdn.simpleicons.org/googleplay/414141" width="16" height="16" alt="" /> **Download** | [datagateapp.com/download](https://datagateapp.com/download) |
 | <img src="https://cdn.simpleicons.org/grafana/F46800" width="16" height="16" alt="" /> **Dashboard** | [dash.datagateapp.com](https://dash.datagateapp.com/) |
 | <img src="https://cdn.simpleicons.org/telegram/26A5E4" width="16" height="16" alt="" /> **Telegram channel** | [@datagateapp](https://t.me/datagateapp) |
