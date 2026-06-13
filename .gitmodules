@@ -1,9 +1,9 @@
 [submodule "backend"]
 	path = backend
-	url = https://github.com/IMKolganov/OpenVPNGateMonitorBackend
+	url = https://github.com/IMKolganov/DataGateMonitorBackend.git
 [submodule "frontend"]
 	path = frontend
-	url = https://github.com/IMKolganov/OpenVpnGateMonitorFrontend
+	url = https://github.com/IMKolganov/DataGateMonitorFrontend.git
 [submodule "telegrambot"]
 	path = telegrambot
 	url = https://github.com/IMKolganov/DataGateVPNBot
