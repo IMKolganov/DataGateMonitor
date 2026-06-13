@@ -1,81 +1,103 @@
-# OpenVPN Gate Monitor
+# DataGate Monitor
 
-A monitoring suite for OpenVPN servers with a dashboard, real‑time status, and optional Telegram bot.
+Monitoring dashboard and API for [DataGate](https://datagateapp.com/) VPN infrastructure: OpenVPN and Xray servers, live status, traffic overview, admin tools, and an optional Telegram bot.
 
-🔗 **Repository**
-```
-https://github.com/IMKolganov/OpenVPNGateMonitor
-```
+## Links
 
-## 🚀 Run (Production, prebuilt images)
+| | |
+|---|---|
+| **Product** | [datagateapp.com](https://datagateapp.com/) |
+| **Download app** | [datagateapp.com/download](https://datagateapp.com/download) |
+| **Dashboard (prod)** | [dash.datagateapp.com](https://dash.datagateapp.com/) |
+| **Telegram channel** | [@datagateapp](https://t.me/datagateapp) |
+| **Repository** | [github.com/IMKolganov/DataGateMonitor](https://github.com/IMKolganov/DataGateMonitor) |
 
-> Install Docker & Docker Compose first (use official docs).
+## Quick start (production, prebuilt images)
 
-### 1) Clone
+Install [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/) first.
+
+### 1) Clone with submodules
+
 ```bash
-git clone --recurse-submodules https://github.com/IMKolganov/OpenVPNGateMonitor.git
-cd OpenVPNGateMonitor
+git clone --recurse-submodules https://github.com/IMKolganov/DataGateMonitor.git
+cd DataGateMonitor
 ```
+
 If you already cloned without submodules:
+
 ```bash
 git submodule update --init --recursive
 ```
 
-### 2) Start
-Use the env file for your architecture (x64 shown here):
+### 2) Start the stack
+
+Use the env file for your architecture (x64 example):
+
 ```bash
 docker compose --env-file .env.prod.x64 up -d --pull always
 ```
 
-**Services**
-- Dashboard: `http://localhost:5582`
-- API: `http://localhost:5581`
-- PostgreSQL: `localhost:5432` (container: `postgres_backend:5432`)
-- Xray sidecar (optional stack): VLESS on **`xray:443`** inside Compose (terminate TLS on nginx and proxy/stream there; no host VLESS port in the default `docker-compose.yml`). Manager API on host **`http://localhost:15012`** by default (override `XRAY_MANAGER_HOST_PORT`). Local dev compose maps VLESS **`localhost:30443`** by default (see `docker-compose-local.yml`).
+**Local URLs**
 
-**Note for development / building locally**
-If you don’t want to use prebuilt images (or you’re developing), run:
+| Service | URL |
+|---------|-----|
+| Dashboard | http://localhost:5582 |
+| API | http://localhost:5581 |
+| PostgreSQL | localhost:5432 (container: `postgres_backend:5432`) |
+| Xray manager API | http://localhost:15012 (override `XRAY_MANAGER_HOST_PORT`) |
+
+Xray VLESS listens on **`xray:443`** inside Compose. Local dev compose exposes VLESS on **localhost:30443** — see `docker-compose-local.yml`.
+
+### Local development (build from source)
+
 ```bash
 docker compose -f docker-compose-local.yml --env-file .env.dev.x64 up -d --build
 ```
 
-## 📦 Structure
+See [README-DEV.md](README-DEV.md) for more dev workflows.
+
+## Repository structure
+
 ```
-backend/          # ASP.NET Core API & services
-frontend/         # React UI
-openvpn/          # OpenVPN TCP/UDP sidecars + EasyRSA paths (submodule)
-xray/             # Xray-core + DataGateXRayManager sidecar (submodule)
-telegrambot/      # Optional ASP.NET Core Telegram bot
+backend/          # ASP.NET Core API (submodule → DataGateMonitorBackend)
+frontend/         # React + Vite UI (submodule)
+openvpn/          # OpenVPN sidecar + DataGateOpenVpnManager (submodule)
+xray/             # Xray sidecar + DataGateXRayManager (submodule)
+telegrambot/      # Optional Telegram bot (submodule)
 docker-compose.yml
 docker-compose-local.yml
-.env.prod.x64 / .env.prod.arm64
-.env.dev.x64  / .env.dev.arm64
+build.sh            # Build/push datagate-monitor-* Docker images
 ```
 
-## ⚙️ Key Environment Variables (override in your .env.*)
-- Backend: `DB_CONNECTION_STRING_DATAGATE`, `DB_DEFAULT_SCHEMA`, `DB_MIGRATION_TABLE`, `JWT_SECRET`, `ELASTIC_*`
-- Frontend: `BACKEND_URL`
-- Telegram bot (optional): `TELEGRAMBOT_BOT_TOKEN`, `HOST_ADDRESS`, `USE_CERTIFICATE`, `AUTO_GENERATE_CERTIFICATE`, `CERTIFICATE_*`, `DASHBOARDAPI_*`, `ELASTIC_*`
-- OpenVPN sidecars: `DATA_DIR`, `EASY_RSA_PATH`, `PORT`, `API_PORT`, `OpenVpnManagement__Port`, `BACKEND__BASEURL`
-- Xray sidecar: `DATA_DIR`, `PORT`, `API_PORT`, `XRayManagement__Host`, `XRayManagement__Port`, `Backend__BaseUrl`, `XRAY_TRANSPORT_MODE` (`plain` / `tls` / `reality`)
-- PostgreSQL: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
+## Key environment variables
 
-## 🔐 Volumes
+Override in `.env.prod.*` / `.env.dev.*`:
+
+- **Backend:** `DB_CONNECTION_STRING_DATAGATE`, `DB_DEFAULT_SCHEMA`, `JWT_SECRET` (≥16 chars), `ELASTIC_*`, `EmailSender__*`
+- **Frontend (compose):** `BACKEND_INTERNAL_URL` — nginx proxy target inside Docker network
+- **Telegram bot:** `TELEGRAMBOT_BOT_TOKEN`, `DASHBOARDAPI_*`, `ELASTIC_*`
+- **OpenVPN sidecars:** `DATA_DIR`, `EASY_RSA_PATH`, `PORT`, `API_PORT`, `OpenVpnManagement__Port`, `BACKEND__BASEURL`
+- **Xray sidecar:** `XRayManagement__Host`, `XRayManagement__Port`, `Backend__BaseUrl`, `XRAY_TRANSPORT_MODE` (`plain` / `tls` / `reality`)
+- **PostgreSQL:** `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
+
+Docker images: `imkolganov/datagate-monitor-{backend,frontend,openvpn,xray,telegrambot}`.
+
+## Volumes
+
 ```
 openvpn_data_udp   openvpn_data_tcp   xray_data   postgres_data_backend   backend_data
 ```
 
-## 📝 License
-MIT
+## Author & support
 
-## 🧩 Example `.env.dev.x64`
-```env
-ASPNETCORE_ENVIRONMENT=Development
-TARGETARCH=x64
-BUILD_CONFIGURATION=Debug
-```
+**Ivan Kolganov**
 
-**Parameters**
-- **ASPNETCORE_ENVIRONMENT** – Runtime environment (`Development`, `Staging`, `Production`). Use `Development` for local debugging.
-- **TARGETARCH** – Target architecture for build (`x64` or `arm64`). Must match your host or target system.
-- **BUILD_CONFIGURATION** – .NET build configuration (`Debug` for development, `Release` for production-like build).
+- [LinkedIn](https://www.linkedin.com/in/imkolganov/?locale=en)
+- [Telegram](https://t.me/KolganovIvan)
+- [Buy Me a Coffee](https://buymeacoffee.com/imkolganov)
+
+Product updates: [@datagateapp](https://t.me/datagateapp)
+
+## License
+
+MIT — see [LICENSE](LICENSE) if present in the repo root.
