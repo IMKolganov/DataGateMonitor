@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+  width="512"
+  height="512"
+  viewBox="0 0 512 512"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Inner filled shield (inset) -->
+  <path
+    d="M256 72L112 152L112 264C112 356 176 432 256 472C336 432 400 356 400 264L400 152L256 72Z"
+    fill="#c9d1d9"
+    transform="translate(256 272) scale(0.82) translate(-256 -272)"/>
+
+  <!-- Shield border -->
+  <path
+    d="M256 72L112 152L112 264C112 356 176 432 256 472C336 432 400 356 400 264L400 152L256 72Z"
+    fill="none"
+    stroke="#c9d1d9"
+    stroke-width="22"
+    stroke-linejoin="round"/>
+
+  <!-- Padlock -->
+  <g transform="translate(256 275)">
+
+    <!-- Lock body with transparent keyhole -->
+    <path
+      fill="#E07A1F"
+      fill-rule="evenodd"
+d="
+  M -46 -8
+  H 46
+  A 10 10 0 0 1 56 2
+  V 66
+  A 10 10 0 0 1 46 76
+  H -46
+  A 10 10 0 0 1 -56 66
+  V 2
+  A 10 10 0 0 1 -46 -8
+  Z
+
+M 12 22
+a 11.76 11.76 0 0 1 -7.84 11.088
+l 3.024 15.596
+a 3.92 3.92 0 0 1 -3.836 4.662
+h -6.174
+a 3.92 3.92 0 0 1 -3.836 -4.662
+l 3.024 -15.596
+a 11.76 11.76 0 1 1 15.68 -11.088
+
+
+"
+/>
+
+    <!-- Open shackle (symmetric, centered, 10px gap preserved) -->
+    <path
+      d="
+        M -32 -8
+        V -44
+        C -32 -68 -16 -84 0 -84
+        C 16 -84 32 -68 32 -44
+        V -32
+      "
+      stroke="#E07A1F"
+      stroke-width="22"
+      stroke-linecap="round"
+      fill="none"/>
+
+  </g>
+
+</svg>
