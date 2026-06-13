@@ -13,7 +13,7 @@ Monitoring dashboard and API for [DataGate](https://datagateapp.com/) VPN infras
 | <img src="https://cdn.simpleicons.org/googleplay/414141" width="16" height="16" alt="" /> **Download app** | [datagateapp.com/download](https://datagateapp.com/download) |
 | <img src="https://cdn.simpleicons.org/grafana/F46800" width="16" height="16" alt="" /> **Dashboard (prod)** | [dash.datagateapp.com](https://dash.datagateapp.com/) |
 | <img src="https://cdn.simpleicons.org/telegram/26A5E4" width="16" height="16" alt="" /> **Telegram channel** | [@datagateapp](https://t.me/datagateapp) |
-| <img src="https://cdn.simpleicons.org/github/181717" width="16" height="16" alt="" /> **Repository** | [github.com/IMKolganov/DataGateMonitor](https://github.com/IMKolganov/DataGateMonitor) |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="https://cdn.simpleicons.org/github/ffffff"><img src="https://cdn.simpleicons.org/github/181717" width="16" height="16" alt=""></picture> **Repository** | [github.com/IMKolganov/DataGateMonitor](https://github.com/IMKolganov/DataGateMonitor) |
 
 ## Quick start (production, prebuilt images)
 
