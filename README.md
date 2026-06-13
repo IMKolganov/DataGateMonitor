@@ -1,4 +1,7 @@
-# DataGate Monitor
+<h1 align="left">
+  <img src="frontend/public/favicon.svg" width="32" height="32" alt="" />
+  DataGate Monitor
+</h1>
 
 Monitoring dashboard and API for [DataGate](https://datagateapp.com/) VPN infrastructure: OpenVPN and Xray servers, live status, traffic overview, admin tools, and an optional Telegram bot.
 
@@ -94,7 +97,7 @@ openvpn_data_udp   openvpn_data_tcp   xray_data   postgres_data_backend   backen
 
 | Contact | Link |
 |---------|------|
-| <img src="https://cdn.simpleicons.org/linkedin/0A66C2" width="16" height="16" alt="" /> **LinkedIn** | [linkedin.com/in/imkolganov](https://www.linkedin.com/in/imkolganov/?locale=en) |
+| <img src="https://api.iconify.design/simple-icons/linkedin.svg?color=%230A66C2" width="16" height="16" alt="" /> **LinkedIn** | [linkedin.com/in/imkolganov](https://www.linkedin.com/in/imkolganov/?locale=en) |
 | <img src="https://cdn.simpleicons.org/telegram/26A5E4" width="16" height="16" alt="" /> **Telegram** | [@KolganovIvan](https://t.me/KolganovIvan) |
 | <img src="https://cdn.simpleicons.org/buymeacoffee/FFDD00" width="16" height="16" alt="" /> **Buy Me a Coffee** | [buymeacoffee.com/imkolganov](https://buymeacoffee.com/imkolganov) |
 | <img src="https://cdn.simpleicons.org/telegram/26A5E4" width="16" height="16" alt="" /> **Product updates** | [@datagateapp](https://t.me/datagateapp) |
