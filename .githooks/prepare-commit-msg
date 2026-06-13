@@ -1,0 +1,11 @@
+#!/bin/sh
+# Strip Cursor agent attribution injected by IDE/CLI.
+MSG_FILE="$1"
+[ -n "$MSG_FILE" ] && [ -f "$MSG_FILE" ] || exit 0
+
+sed -i \
+  -e '/^Co-authored-by: Cursor <cursoragent@cursor\.com>$/d' \
+  -e '/^Made-with: Cursor$/d' \
+  "$MSG_FILE"
+
+exit 0

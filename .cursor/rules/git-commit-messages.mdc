@@ -7,5 +7,7 @@ alwaysApply: true
 
 - Write commit messages in English unless the user explicitly asks for another language.
 - Do **not** add attribution lines such as `Made-with: Cursor`, `Co-authored-by: Cursor`, or similar tool/agent footers.
+- After clone, run `./scripts/setup-git-hooks.sh` to strip any Cursor trailers before commits land locally.
+- In Cursor: **Settings → Agents → Attribution** — disable Commit Attribution and PR Attribution; set `"attributeCommitsToAgent": false` in `~/.cursor/cli-config.json`.
 - Keep messages focused on **why** the change was made; one or two sentences is enough for simple fixes.
 - When bumping a service version, update `Version`, `AssemblyVersion`, and `FileVersion` together in the same commit.
