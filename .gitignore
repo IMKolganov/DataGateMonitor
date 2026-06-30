@@ -7,3 +7,5 @@ openvpn-data-tcp
 *.key
 .idea/
 .vs/
+backups/
+*.dump
