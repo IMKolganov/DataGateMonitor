@@ -1,0 +1,25 @@
+---
+description: Restore SharedModels only from nuget.org; frontend API types only via Orval from OpenAPI.
+alwaysApply: true
+---
+
+# NuGet.org only + Orval for frontend API
+
+## SharedModels / backend restore
+
+- Restore and build **only** from **nuget.org** (`nuget.config` has `<clear />` + nuget.org — keep it that way).
+- **Forbidden** to unblock builds:
+  - `dotnet pack` into `/tmp/nuget-local` (or any local folder) and restore with `--source` that folder
+  - `dotnet nuget add source` for ad-hoc local feeds
+  - `<ProjectReference>` to `DataGateMonitor.SharedModels`
+- If `PackageReference` version is **not on nuget.org**: publish via `nuget/release/v*`, wait for indexing, then bump consumers — **do not** substitute local packages.
+
+## Frontend API client
+
+- **All** backend HTTP contracts (types + hooks) come from **Orval** (`npm run gen:api`) against `frontend/openapi/swagger.json` or live `/swagger/v1/swagger.json`.
+- **Do not** add hand-written `src/api/*Api.ts` files that duplicate DTOs (exception: tiny pure helpers like label formatters in `src/utils/`, with types imported from `src/api/orval/`).
+- After new/changed controllers or SharedModels DTOs:
+  1. Publish SharedModels if needed
+  2. Export/update `frontend/openapi/swagger.json` from running API
+  3. Run `npm run gen:api`
+  4. Wire UI to generated hooks under `src/api/orval/`
