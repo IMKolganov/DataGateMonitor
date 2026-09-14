@@ -33,10 +33,11 @@ When DTOs change in `DataGateMonitor.SharedModels/`:
 
 ## Frontend API client
 
-- **All** backend HTTP contracts (types + hooks) come from **Orval** (`npm run gen:api`) against `frontend/openapi/swagger.json` or live `/swagger/v1/swagger.json`.
+- **All** backend HTTP contracts (types + hooks) come from **Orval** (`npm run gen:api`) against a **running** API: `http://127.0.0.1:5581/swagger/v1/swagger.json` (override with `OPENAPI_URL`).
+- Do **not** generate from a hand-patched snapshot as the normal workflow. `frontend/openapi/swagger.json` is offline/CI only (`npm run gen:api:offline`); refresh it with a curl of the live swagger when you must commit a snapshot.
 - **Do not** add hand-written `src/api/*Api.ts` files that duplicate DTOs (exception: tiny pure helpers like label formatters in `src/utils/`, with types imported from `src/api/orval/`).
 - After new/changed controllers or SharedModels DTOs:
   1. Publish SharedModels if needed
-  2. Export/update `frontend/openapi/swagger.json` from running API
-  3. Run `npm run gen:api`
+  2. Start the API and run `npm run gen:api` (live swagger)
+  3. Optionally `curl` live swagger into `frontend/openapi/swagger.json` for CI
   4. Wire UI to generated hooks under `src/api/orval/`
