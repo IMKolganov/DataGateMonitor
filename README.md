@@ -78,7 +78,7 @@ Override in `.env.prod.*` / `.env.dev.*`:
 
 - **Backend:** `DB_CONNECTION_STRING_DATAGATE`, `DB_DEFAULT_SCHEMA`, `JWT_SECRET` (≥16 chars), `ELASTIC_*`, `EmailSender__*`, `Auth__PublicWebBaseUrl` (TV QR origin), `Auth__TvLoginSessionMinutes`
 - **Frontend (compose):** `BACKEND_INTERNAL_URL` — nginx proxy target inside Docker network
-- **Telegram bot:** `TELEGRAMBOT_BOT_TOKEN`, `DASHBOARDAPI_*`, `ELASTIC_*`
+- **Telegram bot:** `TELEGRAMBOT_BOT_TOKEN`, `DASHBOARDAPI_*`, `ELASTIC_*`, `STARS_ENABLED` / `STARS_AMOUNTS` (`/donate` via Telegram Stars), optional `CRYPTOPAY_API_TOKEN`
 - **OpenVPN sidecars:** `DATA_DIR`, `EASY_RSA_PATH`, `PORT`, `API_PORT`, `OpenVpnManagement__Port`, `BACKEND__BASEURL`
 - **Xray sidecar:** `XRayManagement__Host`, `XRayManagement__Port`, `Backend__BaseUrl`, `XRAY_TRANSPORT_MODE` (`plain` / `tls` / `reality`)
 - **PostgreSQL:** `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`

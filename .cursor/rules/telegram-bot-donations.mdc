@@ -1,0 +1,19 @@
+---
+description: DataGate Telegram bot donations — Stars first, no legal entity, no P2P top-up copy
+alwaysApply: true
+---
+
+# Telegram bot donations
+
+## Prompt (follow this, do not expand the problem)
+
+DataGate Telegram VPN bot. ~300 users. No legal entity and none planned.
+
+Build voluntary `/donate` in the bot:
+
+1. **Primary:** Telegram Stars (`sendInvoice`, currency `XTR`). No provider token. Answer `pre_checkout_query` within 10s. Handle `successful_payment` (those messages have no text).
+2. **Optional:** Crypto Pay invoice only if `CRYPTOPAY_API_TOKEN` is set. Before the invoice, show a P2P **risk banner** (Attention / risk). Do **not** give top-up or P2P how-to steps.
+3. Donation must not change VPN quota plans.
+4. Stay in the Telegram bot shop-bot lane (Stars + optional Crypto Pay). Do not propose acquiring, ИП/ООО/SRL, or unrelated VPN brands.
+
+Do not spend the reply listing payment methods that are out of scope.
