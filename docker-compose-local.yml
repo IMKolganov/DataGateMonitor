@@ -84,6 +84,8 @@ services:
       # Browser env.js (optional). Nginx proxies /api using BACKEND_INTERNAL_URL (Docker DNS).
       BACKEND_URL: http://host.docker.internal:5581
       BACKEND_INTERNAL_URL: http://backend:5581
+      VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+      VITE_CARTO_API_KEY: ${VITE_CARTO_API_KEY:-}
 
   telegrambot:
     build:

@@ -1,6 +1,19 @@
 #!/bin/bash
 set -euo pipefail
 
+# macOS ships Bash 3.2. Prefer Homebrew Bash 4+ so namerefs / ${var,,} / assoc arrays work.
+if (( ${BASH_VERSINFO[0]} < 4 )); then
+  for _newer_bash in /opt/homebrew/bin/bash /usr/local/bin/bash; do
+    if [[ -x "$_newer_bash" ]]; then
+      exec "$_newer_bash" "$0" "$@"
+    fi
+  done
+fi
+
+tolower() {
+  printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]'
+}
+
 # Repository root = directory of this script (works when cwd is not the monorepo root).
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -186,7 +199,9 @@ reap_parallel_builds() {
 }
 
 parallel_fail_strict() {
-  [[ "${BUILD_FAIL_SOFT:-1}" == "0" || "${BUILD_FAIL_SOFT,,}" == "false" || "${BUILD_FAIL_SOFT,,}" == "no" ]]
+  local v
+  v="$(tolower "${BUILD_FAIL_SOFT:-1}")"
+  [[ "${BUILD_FAIL_SOFT:-1}" == "0" || "$v" == "false" || "$v" == "no" ]]
 }
 
 # Per-service step tracker (log + optional status file for the live board).
@@ -357,7 +372,7 @@ build_one_service() {
     backend|telegrambot|openvpn|xray) build_and_push_dotnet "$SVC" ;;
     frontend) build_and_push_frontend ;;
     *)
-      echo "❌ Unknown service: $SVC"
+      echo "Unknown service: ${SVC}"
       echo "Allowed: ${ALL_SERVICES[*]}"
       return 1
       ;;
@@ -365,7 +380,8 @@ build_one_service() {
 }
 
 parallel_enabled() {
-  local v="${BUILD_PARALLEL,,}"
+  local v
+  v="$(tolower "${BUILD_PARALLEL:-1}")"
   [[ "$v" != "0" && "$v" != "false" && "$v" != "no" && "$v" != "off" ]]
 }
 
@@ -377,7 +393,18 @@ while [[ $# -gt 0 ]]; do
     *) ARGS+=("$1"); shift ;;
   esac
 done
-set -- "${ARGS[@]}"
+# bash 3.2 (macOS) + set -u: "${ARGS[@]}" is unbound when the array is empty.
+if ((${#ARGS[@]} > 0)); then
+  set -- "${ARGS[@]}"
+else
+  set --
+fi
+
+if (( ${BASH_VERSINFO[0]} < 4 )) && parallel_enabled; then
+  echo "⚠️  /bin/bash ${BASH_VERSION} cannot run parallel builds (need Bash 4+: brew install bash)."
+  echo "   Falling back to sequential. Install Homebrew bash to keep --parallel."
+  BUILD_PARALLEL=0
+fi
 
 # If no args -> build all
 if [[ $# -eq 0 ]]; then
@@ -390,7 +417,7 @@ for SVC in "${SERVICES[@]}"; do
   case "$SVC" in
     backend|telegrambot|openvpn|xray|frontend) ;;
     *)
-      echo "❌ Unknown service: $SVC"
+      echo "Unknown service: ${SVC}"
       echo "Allowed: ${ALL_SERVICES[*]}"
       exit 1
       ;;
@@ -448,7 +475,7 @@ if parallel_enabled && [[ ${#SERVICES[@]} -gt 1 ]]; then
     ) >"${LOG_DIR}/${SVC}.log" 2>&1 &
     pids+=($!)
     names+=("$SVC")
-    echo "▶️  [${step}/${total}] Started: $SVC (pid $!)"
+    echo "  [${step}/${total}] Started: ${SVC} (pid $!)"
   done
   echo ""
 
@@ -495,12 +522,12 @@ else
   for SVC in "${SERVICES[@]}"; do
     ((done_count++)) || true
     echo ""
-    echo "▶️  [${done_count}/${total}] Building $SVC…"
+    echo "  [${done_count}/${total}] Building ${SVC}..."
     svc_start=$(date +%s)
     unset BUILD_STEP_FILE
     build_one_service "$SVC"
     svc_elapsed=$(( $(date +%s) - svc_start ))
-    echo "✅ [${done_count}/${total}] Finished: $SVC ($(format_duration "$svc_elapsed"))"
+    echo "[${done_count}/${total}] Finished: ${SVC} ($(format_duration "$svc_elapsed"))"
   done
   BUILD_WALL_ELAPSED=$(( $(date +%s) - BUILD_WALL_START ))
   echo ""
