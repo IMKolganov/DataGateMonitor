@@ -54,6 +54,7 @@ services:
     environment:
       # Only nginx proxy target (same-origin /api in browser). Do not set BACKEND_URL to backend: — host browser cannot resolve it.
       BACKEND_INTERNAL_URL: http://backend:5581
+      VITE_CARTO_API_KEY: ${VITE_CARTO_API_KEY:-}
 
 volumes:
   backend_data:

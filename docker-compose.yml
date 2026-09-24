@@ -70,6 +70,7 @@ services:
     environment:
       BACKEND_INTERNAL_URL: http://backend:5581
       VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-your_google_client_id}
+      VITE_CARTO_API_KEY: ${VITE_CARTO_API_KEY:-}
 
   telegrambot:
     image: imkolganov/datagate-monitor-telegrambot:latest
