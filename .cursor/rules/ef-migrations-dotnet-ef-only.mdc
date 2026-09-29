@@ -1,0 +1,44 @@
+---
+description: EF Core migrations only via dotnet ef — never hand-write Migration/Snapshot/Designer.
+alwaysApply: true
+---
+
+# EF Core migrations — no hand-written schema changes
+
+## Forbidden
+
+- Creating or editing `*Migration*.cs` / `*Designer.cs` / `ApplicationDbContextModelSnapshot.cs` by hand (including raw `migrationBuilder.Sql("""ALTER TABLE…""")` as a substitute for a generated migration).
+- Patching only the model + snapshot and shipping code that queries new columns before a generated migration exists and is applied.
+- Leaving a new migration **untracked / uncommitted** while deploying model changes (causes `42703 column does not exist` or `PendingModelChangesWarning`).
+
+## Required workflow
+
+When `VpnServer` / any entity / `HasData` seeds / Fluent API configuration changes:
+
+1. Change the **model** and EF configuration only.
+2. From `backend/`:
+
+```bash
+dotnet ef migrations add <Name> \
+  --project DataGateMonitor.DataBase/DataGateMonitor.DataBase.csproj \
+  --startup-project DataGateMonitor/DataGateMonitor.csproj \
+  --context ApplicationDbContext
+```
+
+3. **Review** the generated `Up`/`Down`. Strip unrelated `InsertData`/`UpdateData`/`DeleteData` that would conflict with data already applied by older SQL-only migrations (keep column/index ops). Do **not** invent a new migration file from scratch.
+4. Confirm sync:
+
+```bash
+dotnet ef migrations has-pending-model-changes \
+  --project DataGateMonitor.DataBase/DataGateMonitor.DataBase.csproj \
+  --startup-project DataGateMonitor/DataGateMonitor.csproj \
+  --context ApplicationDbContext
+```
+
+Must print that no model changes are pending.
+5. Commit **migration `.cs` + `.Designer.cs` + `ApplicationDbContextModelSnapshot.cs` together** with the model change, then build/deploy.
+
+## Exceptions
+
+- Editing `Up`/`Down` of an **already generated** migration to remove dangerous seed churn or add `IF NOT EXISTS` guards after review is OK.
+- Pure data fixes that are intentionally SQL scripts in ops/runbooks (not EF migrations) are out of scope — do not put them in `DataGateMonitor.DataBase/Migrations/` as fake migrations.
