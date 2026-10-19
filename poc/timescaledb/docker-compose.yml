@@ -1,0 +1,23 @@
+# Isolated TimescaleDB PoC — does NOT touch production or datagate-dump-pg data volume.
+# Source data is copied over the Docker network from datagate-dump-pg (read-only).
+services:
+  timescaledb-poc:
+    image: timescale/timescaledb:2.30.2-pg17
+    container_name: datagate-timescale-poc
+    environment:
+      POSTGRES_USER: datagate
+      POSTGRES_PASSWORD: datagate
+      POSTGRES_DB: timescale_poc
+    ports:
+      - "55435:5432"
+    volumes:
+      - timescale_poc_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U datagate -d timescale_poc"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    shm_size: "1gb"
+
+volumes:
+  timescale_poc_pgdata:
