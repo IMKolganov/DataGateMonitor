@@ -147,3 +147,14 @@ Scripts: `docker-compose.restore.yml`, `06_restore_verify.sh`.
 ## Recommendation
 
 Timescale **wins on disk and cold reads** for DataGate traffic. Proceed only after: (1) disk expansion, (2) UserMerge plan that includes `max_tuples_decompressed_per_dml_transaction` + post-merge decompress/VACUUM/columnstore (or append-only aliases), (3) EF/PK/migration work. If merge complexity is unacceptable, prefer stock PG + BRIN/index trim (~9–10 GB) instead.
+
+## Point 3 — UPDATE on compressed vs full decompress (measured 2026-10-19)
+
+`segmentby = ExternalId`. Script: `07_measure_update_on_compressed.sh`. Subject: **693 099** rows (`111216730339576536199`). Hot cutoff `2026-10-05` left uncompressed.
+
+| Path | Wall | Size path | Notes |
+|---|---|---|---|
+| **A** UPDATE in place (`GUC=0`) → cold `convert_to_columnstore` → `VACUUM` | **5.3 s** | 1588 → 1599 → **1446 MB** | Most chunks stayed columnstore (`already converted`); only this ExternalId’s batches decompress |
+| **B** `decompress_chunk` ×59 cold → UPDATE → `VACUUM` → cold columnstore | **103.9 s** | 1588 → **7263** → 7410 → **1197 MB** | Full decompress for one merge is ~20× slower and spikes to ~7 GB |
+
+**Verdict:** prefer **Path A** for the async TrafficRewrite worker on Timescale. Full `decompress_chunk` of all cold chunks is not required when `segmentby = ExternalId`. Still run `VACUUM` **outside** the EF transaction; raise `max_tuples_decompressed_per_dml_transaction` for the worker session. Stock PG path stays plain week-batch `UPDATE` (skeleton already does this).
