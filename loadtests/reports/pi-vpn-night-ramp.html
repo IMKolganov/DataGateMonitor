@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -86,50 +86,50 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Raspberry Pi — сколько VPN-клиентов держит</h1>
-    <p class="sub">Ночной connect-ramp 14 Aug 2026, 02:10–03:44 UTC · loadtest UDP :1296 · subnet 10.50.96.0/22 · 4 client-контейнера · prod не трогали</p>
+    <h1>Raspberry Pi — VPN client capacity</h1>
+    <p class="sub">Overnight connect-ramp 14 Aug 2026, 02:10–03:44 UTC · loadtest UDP :1296 · subnet 10.50.96.0/22 · 4 client containers · production unchanged</p>
 
     <div class="stats">
       <div class="stat">
         <div class="v ok">547</div>
-        <div class="l">Пик одновременных туннелей (N=750)</div>
+        <div class="l">Peak simultaneous tunnels (N=750)</div>
       </div>
       <div class="stat">
         <div class="v">472</div>
-        <div class="l">На цели 1000 (упало из‑за PKI)</div>
+        <div class="l">At target 1000 (limited by PKI)</div>
       </div>
       <div class="stat">
         <div class="v warn">22.1</div>
-        <div class="l">load5 на пике (Pi уже в thrash)</div>
+        <div class="l">load5 at peak (Pi already thrashing)</div>
       </div>
       <div class="stat">
         <div class="v">2.5 GB</div>
-        <div class="l">RAM свободно после N=1000 — не память</div>
+        <div class="l">Free RAM after N=1000 — memory available</div>
       </div>
     </div>
 
     <div class="note">
-      <strong>summary.txt писал 0/0</strong> — агрегатор не распарсил JSON шардов (docker stdout). Цифры ниже собраны из <code>/tmp/pi-vpn-shard-*.json</code> и сходятся с <code>killed</code> на management: 185 / 32 / 547 / 472. Узкое место — EasyRSA (index.txt / CRL), не OpenVPN и не RAM. На N=50 ранее было 50/50 без шардинга.
+      <strong>summary.txt reported 0/0</strong> — the aggregator failed to parse shard JSON from Docker stdout. The figures below come from <code>/tmp/pi-vpn-shard-*.json</code> and match management <code>killed</code> counts: 185 / 32 / 547 / 472. EasyRSA (index.txt / CRL) is the bottleneck; OpenVPN and RAM had capacity. An earlier unsharded N=50 run reached 50/50.
     </div>
 
     <div class="grid">
       <div class="card">
-        <h2>Туннели: цель vs подключено vs issued</h2>
+        <h2>Tunnels: target, connected and issued</h2>
         <canvas id="tunnels" height="120"></canvas>
         <p class="caption">Source: shard soak JSON · 4 shards per level · SKIP_TRAFFIC=1 · hold 45s</p>
       </div>
       <div class="card">
-        <h2>CPU load после уровня (load1 / load5)</h2>
+        <h2>CPU load after each level (load1 / load5)</h2>
         <canvas id="load" height="110"></canvas>
-        <p class="caption">Source: Pi sysctl samples after each level · 4-core Pi, load5&gt;4 = очередь</p>
+        <p class="caption">Source: Pi sysctl samples after each level · 4-core Pi, load5&gt;4 indicates queued work</p>
       </div>
       <div class="card">
-        <h2>RSS loadtest процессов, MB</h2>
+        <h2>Load-test process RSS, MB</h2>
         <canvas id="rss" height="110"></canvas>
-        <p class="caption">openvpn:1999564 и dotnet:1999569 · prod RSS почти не вырос</p>
+        <p class="caption">openvpn:1999564 and dotnet:1999569 · production RSS barely increased</p>
       </div>
       <div class="card">
-        <h2>По уровням</h2>
+        <h2>Results by level</h2>
         <table>
           <thead>
             <tr>
@@ -148,7 +148,7 @@
         </table>
       </div>
       <div class="card">
-        <h2>Шарды (connected / concurrency)</h2>
+        <h2>Shards (connected / concurrency)</h2>
         <table>
           <thead>
             <tr><th>Level</th><th>s0</th><th>s1</th><th>s2</th><th>s3</th><th>Sum</th></tr>
@@ -195,8 +195,8 @@
       data: {
         labels: levels.map(n => "N=" + n),
         datasets: [
-          { label: "Цель", data: target, backgroundColor: "#2a313b" },
-          { label: "Подключено", data: connected, backgroundColor: "#5b8def" },
+          { label: "Target", data: target, backgroundColor: "#2a313b" },
+          { label: "Connected", data: connected, backgroundColor: "#5b8def" },
           { label: "Issued (started)", data: started, backgroundColor: "#3dbe7a" },
         ],
       },
@@ -205,7 +205,7 @@
         plugins: { legend: { position: "bottom" } },
         scales: {
           x: { grid: { display: false }, ticks },
-          y: { beginAtZero: true, title: { display: true, text: "Клиенты" }, grid, ticks },
+          y: { beginAtZero: true, title: { display: true, text: "Clients" }, grid, ticks },
         },
       },
     });
