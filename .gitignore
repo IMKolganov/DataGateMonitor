@@ -8,6 +8,8 @@ openvpn-data-tcp
 .idea/
 .vs/
 backups/
+# Local backend worktree (fresh-DB checkout). Not a monorepo path.
+backend-freshdb/
 *.dump
 __pycache__/
 *.pyc
