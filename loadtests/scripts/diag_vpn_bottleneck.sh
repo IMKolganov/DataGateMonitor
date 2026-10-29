@@ -110,10 +110,10 @@ import json,sys
 d=json.load(open(sys.argv[1]))
 print(f"LAN mode={d.get('mode')} agg_mbps={d.get('agg_mbps')} bytes={d.get('bytes')} ok={d.get('ok')} err={d.get('error')}")
 if d.get("mode") == "tcp_sink":
-    print("→ потолок пути workstation→Pi БЕЗ OpenVPN (линк/CPU sink/стек).")
+    print("→ workstation→Pi path ceiling WITHOUT OpenVPN (link/sink CPU/network stack).")
 else:
-    print("→ TCP :9200 с LAN недоступен (firewall?). HTTP fallback — слабая оценка, не сравнивать с VPN fill.")
-    print("→ для сравнения «канал vs VPN» опирайся на фазу B (1–4 туннеля) и прошлый channel-ramp ~60–75 Mbps.")
+    print("→ LAN TCP :9200 is unavailable (firewall?). The HTTP fallback is a weak estimate; exclude it from VPN saturation comparisons.")
+    print("→ Compare link capacity with phase B (1–4 tunnels) and the earlier channel-ramp result of ~60–75 Mbps.")
 PY
 }
 
@@ -183,46 +183,46 @@ fair = [e for e in events if e["phase"].startswith("D_fair")]
 
 print()
 if lan and lan.get("ok") and lan.get("mode") == "tcp_sink":
-    print(f"1) Сырой канал (LAN TCP→sink): ~{lan['agg_mbps']} Mbps")
-    print("   Если здесь уже ~70–100 — узкое место путь/NIC/sink, не OpenVPN.")
+    print(f"1) Raw link (LAN TCP→sink): ~{lan['agg_mbps']} Mbps")
+    print("   If this already reaches only ~70–100, the path/NIC/sink is the bottleneck before OpenVPN.")
 elif lan and lan.get("ok"):
-    print(f"1) LAN TCP→sink закрыт; HTTP fallback ~{lan['agg_mbps']} Mbps (не потолок канала).")
-    print("   Сравнивай канал с фазой B (VPN fill), не с HTTP.")
+    print(f"1) LAN TCP→sink is blocked; HTTP fallback ~{lan['agg_mbps']} Mbps (below the link ceiling).")
+    print("   Compare link capacity with phase B (VPN saturation), excluding HTTP.")
 elif lan:
     print(f"1) LAN baseline FAILED: {lan.get('error')}")
 else:
-    print("1) LAN baseline: нет данных")
+    print("1) LAN baseline: no data")
 
 if fat:
     best = max((e.get("traffic_agg_mbps") or 0) for e in fat)
-    print(f"2) Потолок через VPN (1–4 туннеля): ~{best} Mbps суммарно")
+    print(f"2) VPN ceiling (1–4 tunnels): ~{best} Mbps aggregate")
     if lan and lan.get("ok") and lan.get("mode") == "tcp_sink" and lan.get("agg_mbps"):
         ratio = best / lan["agg_mbps"]
-        print(f"   VPN/LAN ≈ {ratio:.0%} — остаток уходит в шифрование OpenVPN + tun + Pi CPU.")
+        print(f"   VPN/LAN ≈ {ratio:.0%} — the remainder is spent on OpenVPN encryption, tun and Pi CPU.")
     for e in fat:
         print(f"   {e['phase']}: connected={e.get('connected')}/{e.get('started')} agg={e.get('traffic_agg_mbps')} p50={e.get('traffic_mbps_p50')}")
 
 if fair:
     e = fair[0]
     print(f"3) Fairness N={e.get('n')}: agg={e.get('traffic_agg_mbps')} p50={e.get('traffic_mbps_p50')} Mbps/client")
-    print("   Если agg ≈ как у 1–4 потоков, а p50 падает — это дележ одного пирога, не «каждый туннель сам тормозит».")
+    print("   Flat aggregate throughput matching 1–4 streams, with falling p50, indicates shared capacity across clients.")
 
 if cap:
-    print("4) Ёмкость сессий (без трафика):")
+    print("4) Session capacity (without traffic):")
     for e in cap:
         ok = e.get("connected") or 0
         n = e.get("n") or e.get("started") or 0
         pct = (100*ok/n) if n else 0
         print(f"   N={n}: {ok}/{n} ({pct:.0f}%)")
-    print("   Падение ratio при росте N — лимит процессов/fd/CPU handshake на Pi, не Mbps.")
+    print("   A falling connection ratio as N grows indicates process/fd/handshake CPU limits on the Pi, independent of Mbps.")
 
 print()
-print("Интерпретация:")
-print("  • скорость на клиента ↓ при N↑ при стабильном agg → канал (shared throughput)")
-print("  • connect fail ↑ при N↑ без трафика → ёмкость туннелей")
-print("  • LAN >> VPN agg → узкое место OpenVPN/CPU на Pi")
-print("  • LAN ≈ VPN agg → узкое место уже до VPN (линк/путь)")
-print(f"Артефакты: {root}")
+print("Interpretation:")
+print("  • Per-client throughput ↓ as N↑ with stable aggregate throughput → shared link capacity")
+print("  • Connection failures ↑ as N↑ without traffic → tunnel capacity")
+print("  • LAN >> VPN aggregate throughput → OpenVPN/CPU bottleneck on the Pi")
+print("  • LAN ≈ VPN aggregate throughput → bottleneck before VPN (link/path)")
+print(f"Artifacts: {root}")
 PY
 }
 
