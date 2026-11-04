@@ -193,7 +193,7 @@ services:
       API_PORT: 5011
       PROTO: tcp
 
-      # management тоже внутри контейнера
+      # Management also runs inside the container.
       OpenVpnManagement__Host: localhost
       OpenVpnManagement__Port: "5093"
 

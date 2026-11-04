@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pi OpenVPN — диагностика узких мест</title>
+  <title>Pi OpenVPN — bottleneck diagnostics</title>
   <style>
     :root {
       --bg: #0f1216;
@@ -43,87 +43,87 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Диагностика: туннели vs канал vs скорость</h1>
+    <h1>Diagnostics: tunnels, link capacity and throughput</h1>
     <p class="sub">Loadtest Pi · UDP 1296 · pre-issued .ovpn · sink 10.50.96.1:9200 · 2026-08-14</p>
 
     <div class="grid">
-      <div class="stat"><div class="v ok">~907 Mbps</div><div class="l">LAN iperf3 (eth1 1G) — линк ок</div></div>
-      <div class="stat"><div class="v warn">~96 Mbps</div><div class="l">тот же путь через VPN N=2</div></div>
-      <div class="stat"><div class="v ok">250/250</div><div class="l">ёмкость сессий без трафика</div></div>
-      <div class="stat"><div class="v">~11%</div><div class="l">VPN от сырого LAN (CPU-bound)</div></div>
+      <div class="stat"><div class="v ok">~907 Mbps</div><div class="l">LAN iperf3 (eth1 1G) — healthy link</div></div>
+      <div class="stat"><div class="v warn">~96 Mbps</div><div class="l">Same path over VPN N=2</div></div>
+      <div class="stat"><div class="v ok">250/250</div><div class="l">Session capacity without traffic</div></div>
+      <div class="stat"><div class="v">~11%</div><div class="l">VPN as a share of raw LAN (CPU-bound)</div></div>
     </div>
 
     <div class="panel">
-      <strong>Вердикт:</strong> линк workstation↔Pi <span class="ok">не узкое место</span>
-      (iperf3 ≈907 Mbps, sink LAN ≈848 Mbps на eth1 1000).
-      Потолок ≈60–95 Mbps — это <span class="warn">OpenVPN/CPU на Pi</span> (4× Cortex-A72 @ 1.8 GHz), не гигабит.
+      <strong>Finding:</strong> the workstation↔Pi link <span class="ok">has spare capacity</span>
+      (iperf3 ≈907 Mbps, LAN sink ≈848 Mbps on eth1 1000).
+      The ≈60–95 Mbps ceiling comes from <span class="warn">OpenVPN/CPU on the Pi</span> (4× Cortex-A72 @ 1.8 GHz), below the gigabit link capacity.
     </div>
 
     <div class="panel">
-      <strong>Зачем этот тест.</strong> Channel-ramp показал, что суммарный Mbps почти не растёт, а на клиента падает.
-      Этот прогон <em>разделяет причины</em>: сырой линк vs VPN crypto, ёмкость сессий, fairness.
+      <strong>Purpose.</strong> Channel-ramp showed nearly flat aggregate Mbps and falling per-client throughput.
+      This run <em>isolates the causes</em>: raw link capacity, VPN encryption, session capacity and fairness.
     </div>
 
-    <h2>Фазы и что каждая доказывает</h2>
+    <h2>Test phases and what they establish</h2>
     <div class="panel">
       <table>
         <thead>
-          <tr><th>Фаза</th><th>Что мерили</th><th>Результат</th><th>Вывод</th></tr>
+          <tr><th>Phase</th><th>Measurement</th><th>Result</th><th>Finding</th></tr>
         </thead>
         <tbody>
           <tr>
             <td>A · LAN→sink / iperf3</td>
-            <td>TCP без VPN (после открытия :9200)</td>
+            <td>TCP without VPN (after opening :9200)</td>
             <td class="ok">sink 848 · iperf3 907 Mbps</td>
-            <td>Сырой линк ≈1G — <strong>не узкое место</strong></td>
+            <td>Raw link ≈1G — <strong>spare link capacity</strong></td>
           </tr>
           <tr>
             <td>B · VPN N=1/2/4</td>
-            <td>Макс. fill через туннели</td>
+            <td>Maximum throughput through tunnels</td>
             <td class="ok">2→96 Mbps · 4→81 Mbps</td>
-            <td>Потолок OpenVPN/CPU ≈ <strong>80–95 Mbps</strong> (~11% от LAN)</td>
+            <td>OpenVPN/CPU ceiling ≈ <strong>80–95 Mbps</strong> (~11% of LAN)</td>
           </tr>
           <tr>
             <td>C · connect-only</td>
-            <td>Сессии без трафика</td>
+            <td>Sessions without traffic</td>
             <td class="ok">100≈99% · 250=100% · <span class="bad">500=42%</span></td>
-            <td>Лимит <strong>туннелей</strong>, не Mbps</td>
+            <td><strong>Tunnel</strong> capacity, independent of Mbps</td>
           </tr>
           <tr>
             <td>D · N=50 traffic</td>
-            <td>Все клиенты 12s</td>
+            <td>All clients for 12s</td>
             <td>agg 63 · p50 3.2 Mbps</td>
-            <td>Тот же пирог, тоньше на клиента</td>
+            <td>Shared aggregate throughput, less per client</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <h2>Что конкретно ограничено</h2>
+    <h2>Specific limits</h2>
     <div class="panel">
       <ul>
-        <li><strong>Канал (shared throughput):</strong> суммарно через VPN упираетесь в ≈ <strong>60–95 Mbps</strong>
-          (B: 94 при 2 потоках; D: 63 при 50; channel-ramp: 60–75 при 25–250).
-          Скорость <em>на клиента</em> падает, потому что пирог один — это не «каждый туннель деградировал сам по себе».</li>
-        <li><strong>Ёмкость сессий:</strong> без трафика стабильно <strong>250</strong>; на <strong>500</strong> уже ~40–75% connect
-          (здесь 211/500; в channel-ramp с трафиком было 384/500 — разброс от нагрузки/состояния Pi).</li>
-        <li><strong>Скорость ≠ ёмкость:</strong> N=250 connect-only 100% при почти пустом трафике;
-          при fill на N=50 agg тот же порядок, что у 2–4 жирных потоков.</li>
-        <li><strong>Линк vs CPU (добито):</strong> открыли :9200 с LAN (iptables-nft + legacy) и iperf3 :5201.
-          LAN ≈ <strong>850–907 Mbps</strong>, VPN ≈ <strong>96 Mbps</strong> → узкое место шифрование/CPU OpenVPN на Pi, не eth1.</li>
+        <li><strong>Link (shared throughput):</strong> aggregate VPN throughput reaches ≈ <strong>60–95 Mbps</strong>
+          (B: 94 with 2 streams; D: 63 with 50; channel-ramp: 60–75 with 25–250).
+          <em>Per-client</em> throughput falls because clients share the same aggregate capacity.</li>
+        <li><strong>Session capacity:</strong> stable at <strong>250</strong> without traffic; at <strong>500</strong>, only ~40–75% connect
+          (211/500 here; 384/500 with traffic in channel-ramp — variation reflects Pi load and state).</li>
+        <li><strong>Throughput ≠ capacity:</strong> N=250 connect-only reaches 100% with almost no traffic;
+          at N=50 under load, aggregate throughput remains comparable to 2–4 heavy streams.</li>
+        <li><strong>Link versus CPU (confirmed):</strong> opened :9200 from LAN (iptables-nft + legacy) and iperf3 :5201.
+          LAN ≈ <strong>850–907 Mbps</strong>, VPN ≈ <strong>96 Mbps</strong> → OpenVPN encryption/CPU on the Pi is the bottleneck, with spare eth1 capacity.</li>
       </ul>
     </div>
 
-    <h2>Как читать слова</h2>
+    <h2>Terminology</h2>
     <div class="panel">
       <ul>
-        <li><strong>Канал / agg Mbps</strong> — суммарные биты всех клиентов ÷ время. Это «пирог».</li>
-        <li><strong>Скорость на клиента (p50)</strong> — кусок пирога. Падает при росте N, если agg плоский.</li>
-        <li><strong>Ёмкость туннелей</strong> — сколько <code>Initialization Sequence Completed</code> без обязательного трафика.</li>
+        <li><strong>Link / agg Mbps</strong> — total bits across all clients ÷ elapsed time: shared aggregate throughput.</li>
+        <li><strong>Per-client throughput (p50)</strong> — each client’s share. It falls as N grows when aggregate throughput is flat.</li>
+        <li><strong>Tunnel capacity</strong> — the number of <code>Initialization Sequence Completed</code> events, without requiring traffic.</li>
       </ul>
     </div>
 
-    <h2>Сырые цифры diag</h2>
+    <h2>Raw diagnostic measurements</h2>
     <div class="panel">
       <table>
         <thead><tr><th>Run</th><th>connected</th><th>traffic_ok</th><th>agg Mbps</th><th>p50</th></tr></thead>
@@ -131,7 +131,7 @@
           <tr><td>B_vpn1</td><td>1/1</td><td>0</td><td>—</td><td>—</td></tr>
           <tr><td>A_lan_sink</td><td>—</td><td>—</td><td>847.9</td><td>—</td></tr>
           <tr><td>A_iperf3_lan</td><td>—</td><td>—</td><td>907.2</td><td>—</td></tr>
-          <tr><td>B_vpn2 (повтор)</td><td>2/2</td><td>2</td><td>95.8</td><td>45.9</td></tr>
+          <tr><td>B_vpn2 (repeat)</td><td>2/2</td><td>2</td><td>95.8</td><td>45.9</td></tr>
           <tr><td>B_vpn2</td><td>2/2</td><td>2</td><td>94.3</td><td>40.3</td></tr>
           <tr><td>B_vpn4</td><td>4/4</td><td>4</td><td>80.5</td><td>20.0</td></tr>
           <tr><td>C_cap100</td><td>99/100</td><td>—</td><td>—</td><td>—</td></tr>
@@ -141,7 +141,7 @@
         </tbody>
       </table>
       <p style="color:var(--muted);font-size:12px;margin:10px 0 0">
-        Скрипт: <code>loadtests/scripts/diag_vpn_bottleneck.sh</code> · артефакты: <code>/tmp/ovpn-diag/</code>
+        Script: <code>loadtests/scripts/diag_vpn_bottleneck.sh</code> · artifacts: <code>/tmp/ovpn-diag/</code>
       </p>
     </div>
   </div>

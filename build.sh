@@ -227,6 +227,51 @@ service_plan() {
   done
 }
 
+# App version used as a Docker tag next to :latest. Same digest, so Hub stores the layers once.
+# Dotnet: <Version> of the service csproj (not SharedModels). Frontend: package.json "version".
+service_version_file() {
+  case "$1" in
+    backend) printf '%s\n' "${REPO_ROOT}/backend/DataGateMonitor/DataGateMonitor.csproj" ;;
+    telegrambot) printf '%s\n' "${REPO_ROOT}/telegrambot/DataGateVPNBot/DataGateVPNBot.csproj" ;;
+    openvpn) printf '%s\n' "${REPO_ROOT}/openvpn/DataGateOpenVpnManager/DataGateOpenVpnManager.csproj" ;;
+    xray) printf '%s\n' "${REPO_ROOT}/xray/DataGateXRayManager/DataGateXRayManager.csproj" ;;
+    frontend) printf '%s\n' "${REPO_ROOT}/frontend/package.json" ;;
+    *)
+      echo "❌ No version source for service: $1" >&2
+      return 1
+      ;;
+  esac
+}
+
+read_image_version() {
+  local service=$1
+  local file v=""
+  file="$(service_version_file "$service")"
+  if [[ ! -f "$file" ]]; then
+    echo "❌ Version file not found for ${service}: ${file}" >&2
+    return 1
+  fi
+  case "$file" in
+    *.csproj)
+      v="$(sed -n 's/^[[:space:]]*<Version>\([^<]*\)<\/Version>[[:space:]]*$/\1/p' "$file" | head -n 1)"
+      ;;
+    *.json)
+      v="$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$file" | head -n 1)"
+      ;;
+  esac
+  v="${v#"${v%%[![:space:]]*}"}"
+  v="${v%"${v##*[![:space:]]}"}"
+  if [[ -z "$v" ]]; then
+    echo "❌ Could not read version for ${service} from ${file}" >&2
+    return 1
+  fi
+  if [[ ! "$v" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+    echo "❌ Version '${v}' from ${file} is not a valid Docker tag" >&2
+    return 1
+  fi
+  printf '%s' "$v"
+}
+
 docker buildx inspect "${BUILDER_NAME}" >/dev/null 2>&1 || {
   echo "🧱 Creating buildx builder '${BUILDER_NAME}'..."
   docker buildx create --name "${BUILDER_NAME}" --use
@@ -238,11 +283,20 @@ build_and_push_dotnet() {
   local CONTEXT="${REPO_ROOT}/${SERVICE}"
   local DOCKERFILE="${CONTEXT}/Dockerfile"
   local IMAGE_NAME="${DOCKER_USER}/${IMAGE_PREFIX}-${SERVICE}"
+  local VERSION
+  VERSION="$(read_image_version "$SERVICE")"
+  local -a RELEASE_TAGS=("${IMAGE_NAME}:latest")
+  if [[ "$VERSION" != "latest" ]]; then
+    RELEASE_TAGS+=("${IMAGE_NAME}:${VERSION}")
+  fi
+  local release_label
+  release_label="$(printf ':%s, ' "${RELEASE_TAGS[@]#${IMAGE_NAME}:}")"
+  release_label="${release_label%, }"
   local STEPS=(
     "Check Dockerfile"
     "Build & push linux/amd64"
     "Build & push linux/arm64"
-    "Create multi-arch manifest (:latest)"
+    "Create multi-arch tags (${release_label})"
     "Done"
   )
   local TOTAL=${#STEPS[@]}
@@ -274,22 +328,29 @@ build_and_push_dotnet() {
   done
 
   service_step 4 "$TOTAL" "${STEPS[3]}"
-  echo "   tag ${IMAGE_NAME}:latest ← amd64 + arm64"
+  echo "   tags ${RELEASE_TAGS[*]} ← amd64 + arm64"
+  local -a tag_args=()
+  local t
+  for t in "${RELEASE_TAGS[@]}"; do
+    tag_args+=(--tag "$t")
+  done
   docker buildx imagetools create \
-    --tag "${IMAGE_NAME}:latest" \
+    "${tag_args[@]}" \
     "${IMAGE_NAME}:amd64" \
     "${IMAGE_NAME}:arm64"
   echo "   manifest ready"
 
   service_step 5 "$TOTAL" "${STEPS[4]}"
-  echo "✅ ${SERVICE} built and pushed as: ${IMAGE_NAME}:latest"
+  echo "✅ ${SERVICE} built and pushed as: ${RELEASE_TAGS[*]}"
 }
 
 build_and_push_frontend() {
   local CONTEXT="${REPO_ROOT}/frontend"
   local DOCKERFILE="${CONTEXT}/Dockerfile"
   local IMAGE_NAME="${DOCKER_USER}/${IMAGE_PREFIX}-frontend"
-  # Split comma-separated platforms into per-arch build+push, then a final tag step when multi-arch.
+  local VERSION
+  VERSION="$(read_image_version frontend)"
+  # Split comma-separated platforms into per-arch build+push, then tag :FRONT_TAG and the package version.
   local -a PLAT_LIST=()
   IFS=',' read -r -a PLAT_LIST <<<"${FRONTEND_PLATFORMS}"
   local -a NORM_PLATS=()
@@ -309,8 +370,10 @@ build_and_push_frontend() {
   for p in "${NORM_PLATS[@]}"; do
     STEPS+=("Build & push ${p}")
   done
-  if (( ${#NORM_PLATS[@]} > 1 )); then
-    STEPS+=("Create multi-arch tag :${FRONT_TAG}")
+  if [[ "$VERSION" == "$FRONT_TAG" ]]; then
+    STEPS+=("Tag :${FRONT_TAG}")
+  else
+    STEPS+=("Tag :${FRONT_TAG} and :${VERSION}")
   fi
   STEPS+=("Done")
   local TOTAL=${#STEPS[@]}
@@ -343,27 +406,46 @@ build_and_push_frontend() {
     ((step++)) || true
   done
 
-  if (( ${#NORM_PLATS[@]} > 1 )); then
-    service_step "$step" "$TOTAL" "${STEPS[$((step - 1))]}"
-    echo "   tag ${IMAGE_NAME}:${FRONT_TAG} ← ${ARCH_TAGS[*]}"
+  service_step "$step" "$TOTAL" "${STEPS[$((step - 1))]}"
+  local -a RELEASE_TAGS=()
+  local candidate skip existing
+  for candidate in "${IMAGE_NAME}:${FRONT_TAG}" "${IMAGE_NAME}:${VERSION}"; do
+    skip=0
+    if (( ${#RELEASE_TAGS[@]} > 0 )); then
+      for existing in "${RELEASE_TAGS[@]}"; do
+        [[ "$existing" == "$candidate" ]] && skip=1
+      done
+    fi
+    # A single-arch push already published this tag; don't replace it with a one-image manifest.
+    if (( ${#ARCH_TAGS[@]} == 1 )) && [[ "$candidate" == "${ARCH_TAGS[0]}" ]]; then
+      skip=1
+    fi
+    if (( skip == 0 )); then
+      RELEASE_TAGS+=("$candidate")
+    fi
+  done
+  if (( ${#RELEASE_TAGS[@]} > 0 )); then
+    echo "   tags ${RELEASE_TAGS[*]} ← ${ARCH_TAGS[*]}"
+    local -a tag_args=()
+    local t
+    for t in "${RELEASE_TAGS[@]}"; do
+      tag_args+=(--tag "$t")
+    done
     docker buildx imagetools create \
-      --tag "${IMAGE_NAME}:${FRONT_TAG}" \
+      "${tag_args[@]}" \
       "${ARCH_TAGS[@]}"
     echo "   manifest ready"
-    ((step++)) || true
   else
-    # Single platform: also tag as FRONT_TAG (often "latest") for compose defaults.
-    local only_tag="${ARCH_TAGS[0]}"
-    if [[ "${only_tag}" != "${IMAGE_NAME}:${FRONT_TAG}" ]]; then
-      echo "   tagging ${only_tag} → ${IMAGE_NAME}:${FRONT_TAG}"
-      docker buildx imagetools create \
-        --tag "${IMAGE_NAME}:${FRONT_TAG}" \
-        "${only_tag}"
-    fi
+    echo "   image already tagged ${ARCH_TAGS[*]}"
   fi
+  ((step++)) || true
 
   service_step "$step" "$TOTAL" "Done"
-  echo "✅ Frontend built and pushed as: ${IMAGE_NAME}:${FRONT_TAG}"
+  if [[ "$VERSION" == "$FRONT_TAG" ]]; then
+    echo "✅ Frontend built and pushed as: ${IMAGE_NAME}:${FRONT_TAG}"
+  else
+    echo "✅ Frontend built and pushed as: ${IMAGE_NAME}:${FRONT_TAG} and ${IMAGE_NAME}:${VERSION}"
+  fi
 }
 
 build_one_service() {
@@ -433,10 +515,10 @@ if parallel_enabled && [[ ${#SERVICES[@]} -gt 1 ]]; then
     ((step++)) || true
     case "$SVC" in
       frontend)
-        echo "  ${step}/${total}  $SVC  (check → build&push per platform → tag → done)"
+        echo "  ${step}/${total}  $SVC  (check → build&push per platform → tags latest+version → done)"
         ;;
       *)
-        echo "  ${step}/${total}  $SVC  (check → amd64 build&push → arm64 build&push → manifest → done)"
+        echo "  ${step}/${total}  $SVC  (check → amd64 build&push → arm64 build&push → tags latest+version → done)"
         ;;
     esac
   done

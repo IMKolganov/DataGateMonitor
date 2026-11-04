@@ -1,0 +1,22 @@
+# Clean Timescale instance for restore verification only.
+services:
+  timescaledb-restore:
+    image: timescale/timescaledb:2.30.2-pg17
+    container_name: datagate-timescale-restore
+    environment:
+      POSTGRES_USER: datagate
+      POSTGRES_PASSWORD: datagate
+      POSTGRES_DB: postgres
+    ports:
+      - "55436:5432"
+    volumes:
+      - timescale_restore_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U datagate -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    shm_size: "1gb"
+
+volumes:
+  timescale_restore_pgdata:
